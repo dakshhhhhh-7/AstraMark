@@ -39,14 +39,22 @@ export function AnalysisDashboard({ analysis }) {
     );
   };
 
-  const PremiumLock = ({ feature }) => (
-    <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
-      <Lock className="w-12 h-12 text-purple-400 mb-3" />
-      <h3 className="text-white font-semibold mb-2">{feature}</h3>
-      <p className="text-slate-400 text-sm mb-4 text-center px-4">Unlock with Pro</p>
+  const PremiumLock = ({ feature, specificBenefit }) => (
+    <div className="absolute inset-0 bg-slate-900/90 backdrop-blur-sm rounded-lg flex flex-col items-center justify-center z-10">
+      <div className="bg-gradient-to-br from-purple-600 to-pink-600 p-3 rounded-full mb-3">
+        <Lock className="w-8 h-8 text-white" />
+      </div>
+      <h3 className="text-white font-semibold mb-1">{feature}</h3>
+      {specificBenefit && (
+        <p className="text-purple-300 text-sm mb-3 text-center px-4 max-w-md">
+          <Crown className="w-4 h-4 inline mr-1" />
+          {specificBenefit}
+        </p>
+      )}
+      <p className="text-slate-400 text-sm mb-4 text-center px-4">Upgrade to Pro to unlock</p>
       <Button data-testid="upgrade-to-pro-btn" className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
         <Sparkles className="w-4 h-4 mr-2" />
-        Upgrade to Pro
+        Upgrade to Pro - $99/mo
       </Button>
     </div>
   );
