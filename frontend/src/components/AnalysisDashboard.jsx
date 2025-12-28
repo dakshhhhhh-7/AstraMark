@@ -13,9 +13,14 @@ import {
   AlertTriangle,
   CheckCircle2,
   ArrowRight,
-  Sparkles
+  Sparkles,
+  Crown,
+  Eye
 } from 'lucide-react';
 import { useState } from 'react';
+import { LiveAgentPanel } from '@/components/LiveAgentPanel';
+import { BlockchainProofCard } from '@/components/BlockchainProofCard';
+import { ExecutionActions } from '@/components/ExecutionActions';
 
 export function AnalysisDashboard({ analysis }) {
   const [isPremium] = useState(analysis.is_premium || false);
