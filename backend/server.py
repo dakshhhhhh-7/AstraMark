@@ -80,6 +80,32 @@ class RevenueProjection(BaseModel):
     max_monthly: str
     growth_timeline: str
 
+class MarketSignal(BaseModel):
+    signal_type: str
+    message: str
+    severity: str  # "info", "warning", "critical"
+    detected_at: str
+
+class BlockchainProof(BaseModel):
+    strategy_hash: str
+    verification_status: str
+    last_verified: str
+    kpi_snapshot_hash: str
+
+class AILearningUpdate(BaseModel):
+    update_type: str
+    improvement_metric: str
+    learning_description: str
+    timestamp: str
+
+class ExecutionAction(BaseModel):
+    action_id: str
+    action_name: str
+    action_type: str
+    description: str
+    status: str  # "available", "locked"
+    is_premium: bool
+
 class AnalysisResult(BaseModel):
     model_config = ConfigDict(extra="ignore")
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -99,6 +125,13 @@ class AnalysisResult(BaseModel):
     next_action: str
     is_premium: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    # NEW: Agent behavior features
+    market_signals: List[MarketSignal] = []
+    blockchain_proof: Optional[BlockchainProof] = None
+    ai_learning_updates: List[AILearningUpdate] = []
+    execution_actions: List[ExecutionAction] = []
+    last_market_scan: Optional[str] = None
+    monitoring_status: str = "active"
 
 # ==================== AI ENGINE ====================
 async def generate_market_analysis(business: BusinessInput, use_web_search: bool = False) -> Dict[str, Any]:
