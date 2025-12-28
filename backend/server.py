@@ -395,6 +395,9 @@ async def analyze_business(business_input: BusinessInput, premium: bool = False)
         # Generate AI analysis
         analysis_data = await generate_market_analysis(business_input)
         
+        # Generate agent features (autonomous behavior)
+        agent_features = generate_agent_features(business_input.business_type, business_input.primary_goal)
+        
         # Create analysis result
         analysis_result = AnalysisResult(
             business_id=business_profile.id,
@@ -411,7 +414,14 @@ async def analyze_business(business_input: BusinessInput, premium: bool = False)
             biggest_opportunity=analysis_data['biggest_opportunity'],
             biggest_risk=analysis_data['biggest_risk'],
             next_action=analysis_data['next_action'],
-            is_premium=premium
+            is_premium=premium,
+            # Agent features
+            market_signals=[MarketSignal(**s) for s in agent_features['market_signals']],
+            blockchain_proof=BlockchainProof(**agent_features['blockchain_proof']) if agent_features['blockchain_proof'] else None,
+            ai_learning_updates=[AILearningUpdate(**u) for u in agent_features['ai_learning_updates']],
+            execution_actions=[ExecutionAction(**a) for a in agent_features['execution_actions']],
+            last_market_scan=agent_features['last_market_scan'],
+            monitoring_status=agent_features['monitoring_status']
         )
         
         # Save analysis
