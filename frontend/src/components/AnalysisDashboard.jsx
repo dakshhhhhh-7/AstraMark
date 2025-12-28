@@ -96,6 +96,17 @@ export function AnalysisDashboard({ analysis }) {
         </div>
       </div>
 
+      {/* NEW: Live Agent Panel */}
+      <LiveAgentPanel analysis={analysis} />
+
+      {/* NEW: Blockchain Proof */}
+      {analysis.blockchain_proof && (
+        <BlockchainProofCard blockchainProof={analysis.blockchain_proof} />
+      )}
+
+      {/* NEW: Execution Actions */}
+      <ExecutionActions actions={analysis.execution_actions} isPremium={isPremium} />
+
       {/* Market Analysis */}
       <Card className="bg-slate-900/50 border-slate-800" data-testid="market-analysis-card">
         <CardHeader>
