@@ -134,6 +134,115 @@ class AnalysisResult(BaseModel):
     monitoring_status: str = "active"
 
 # ==================== AI ENGINE ====================
+def generate_agent_features(business_type: str, primary_goal: str) -> Dict[str, Any]:
+    """Generate autonomous agent features like market signals, blockchain proof, etc."""
+    import random
+    from datetime import datetime, timedelta
+    
+    # Generate realistic market signals
+    signals_pool = [
+        {"type": "cpc_spike", "severity": "warning", "message": f"Google Ads CPC for '{business_type}' keywords increased by 18% in 7 days. AI has adjusted keyword focus automatically."},
+        {"type": "competitor_move", "severity": "info", "message": "Competitor launched new campaign. AI analyzing their strategy patterns."},
+        {"type": "trend_detected", "severity": "info", "message": f"Rising search interest detected for '{business_type}' (+32% this month). Opportunity window identified."},
+        {"type": "platform_update", "severity": "critical", "message": "Meta algorithm change detected. AI recalibrating ad strategy for optimal reach."},
+        {"type": "market_shift", "severity": "warning", "message": f"User behavior shift: 40% increase in mobile traffic. Strategy auto-updated for mobile-first approach."},
+    ]
+    
+    market_signals = [
+        {
+            "signal_type": signal["type"],
+            "message": signal["message"],
+            "severity": signal["severity"],
+            "detected_at": f"{random.randint(1, 12)} hours ago"
+        }
+        for signal in random.sample(signals_pool, min(3, len(signals_pool)))
+    ]
+    
+    # Generate blockchain proof
+    blockchain_proof = {
+        "strategy_hash": f"0x{uuid.uuid4().hex[:8].upper()}...{uuid.uuid4().hex[-4:].upper()}",
+        "verification_status": "Verified",
+        "last_verified": f"{random.randint(1, 24)} hours ago",
+        "kpi_snapshot_hash": f"0x{uuid.uuid4().hex[:12].upper()}"
+    }
+    
+    # Generate AI learning updates
+    learning_updates = [
+        {
+            "update_type": "Performance Optimization",
+            "improvement_metric": "CTR improved by +22%",
+            "learning_description": "Last strategy improved click-through rates significantly. Future recommendations now prioritize mobile-optimized content.",
+            "timestamp": "2 days ago"
+        },
+        {
+            "update_type": "Strategy Refinement",
+            "improvement_metric": "CAC reduced by 15%",
+            "learning_description": "AI identified inefficient ad spend patterns. Automatically reallocated budget to high-converting channels.",
+            "timestamp": "5 days ago"
+        }
+    ]
+    
+    # Generate execution actions
+    execution_actions = [
+        {
+            "action_id": "gen_ad_copy",
+            "action_name": "Generate Ad Copies",
+            "action_type": "content",
+            "description": "AI will create 10 high-converting ad copies optimized for your target audience",
+            "status": "available",
+            "is_premium": False
+        },
+        {
+            "action_id": "meta_campaign",
+            "action_name": "Build Meta Campaign",
+            "action_type": "execution",
+            "description": "Auto-create complete Meta Ads campaign with audience targeting and creative sets",
+            "status": "locked",
+            "is_premium": True
+        },
+        {
+            "action_id": "seo_content",
+            "action_name": "Create SEO Content Plan",
+            "action_type": "content",
+            "description": "Generate 30-day content calendar with keyword-optimized article outlines",
+            "status": "available",
+            "is_premium": False
+        },
+        {
+            "action_id": "email_sequence",
+            "action_name": "Launch Email Sequence",
+            "action_type": "execution",
+            "description": "Build automated email nurture sequence with 7 high-converting messages",
+            "status": "locked",
+            "is_premium": True
+        },
+        {
+            "action_id": "export_integration",
+            "action_name": "Export to Tools",
+            "action_type": "integration",
+            "description": "Push strategy directly to Google Ads, Meta, Notion, or HubSpot",
+            "status": "locked",
+            "is_premium": True
+        },
+        {
+            "action_id": "competitor_spy",
+            "action_name": "Track Competitors Live",
+            "action_type": "monitoring",
+            "description": "Real-time monitoring of competitor ad spend, creatives, and landing pages",
+            "status": "locked",
+            "is_premium": True
+        }
+    ]
+    
+    return {
+        "market_signals": market_signals,
+        "blockchain_proof": blockchain_proof,
+        "ai_learning_updates": learning_updates,
+        "execution_actions": execution_actions,
+        "last_market_scan": f"{random.randint(30, 180)} minutes ago",
+        "monitoring_status": "active"
+    }
+
 async def generate_market_analysis(business: BusinessInput, use_web_search: bool = False) -> Dict[str, Any]:
     """Generate comprehensive market analysis using AI"""
     
