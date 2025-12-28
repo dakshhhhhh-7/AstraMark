@@ -318,26 +318,92 @@ export function AnalysisDashboard({ analysis }) {
         </CardContent>
       </Card>
 
-      {/* Competitor Analysis - Premium Feature */}
+      {/* Competitor Analysis - Premium Feature with Enhanced Upsell */}
       <Card className="bg-slate-900/50 border-slate-800 relative" data-testid="competitor-analysis-card">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Target className="w-5 h-5 text-purple-400" />
-              <CardTitle className="text-white">Competitor Deep-Dive</CardTitle>
+              <Eye className="w-5 h-5 text-purple-400" />
+              <CardTitle className="text-white">Live Competitor Intelligence</CardTitle>
             </div>
-            <Badge className="bg-purple-500/10 text-purple-400 border-purple-500/30">
-              <Lock className="w-3 h-3 mr-1" />
-              Pro
+            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
+              <Crown className="w-3 h-3 mr-1" />
+              Pro Only
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="min-h-[250px]">
+          <div className="space-y-3 blur-sm select-none">
+            <div className="bg-slate-800/50 rounded p-3 border border-slate-700">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold">Competitor X</span>
+                <span className="text-green-400">₹4.2L/month spend</span>
+              </div>
+              <div className="text-sm text-slate-400">
+                Meta Ads: 24 active campaigns • Google: 18 keywords • 2.3K monthly visits
+              </div>
+            </div>
+            <div className="bg-slate-800/50 rounded p-3 border border-slate-700">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold">Competitor Y</span>
+                <span className="text-yellow-400">₹2.8L/month spend</span>
+              </div>
+              <div className="text-sm text-slate-400">
+                TikTok: Viral campaign (1.2M views) • Instagram: 45K followers • New landing page
+              </div>
+            </div>
+            <div className="bg-slate-800/50 rounded p-3 border border-slate-700">
+              <div className="flex justify-between items-center mb-2">
+                <span className="font-semibold">Market Leader Z</span>
+                <span className="text-red-400">₹12L/month spend</span>
+              </div>
+              <div className="text-sm text-slate-400">
+                Display Network: 500+ placements • SEO: 2,400 ranking keywords • Email: 3x/week
+              </div>
+            </div>
+          </div>
+        </CardContent>
+        {!isPremium && (
+          <PremiumLock 
+            feature="Live Competitor Intelligence" 
+            specificBenefit="See exact ad spend, campaign strategies, landing pages, and keyword targets of your top 3 competitors updated in real-time"
+          />
+        )}
+      </Card>
+
+      {/* Advanced Market Trends - Premium Feature */}
+      <Card className="bg-slate-900/50 border-slate-800 relative" data-testid="market-trends-card">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-400" />
+              <CardTitle className="text-white">Real-Time CPC & Market Trends</CardTitle>
+            </div>
+            <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
+              <Crown className="w-3 h-3 mr-1" />
+              Enterprise
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="min-h-[200px]">
-          <div className="text-slate-300 blur-sm">
-            Detailed competitor analysis, market positioning, and competitive advantages...
+          <div className="space-y-3 blur-sm select-none">
+            <div className="flex justify-between items-center text-sm">
+              <span>Google Ads CPC (your industry)</span>
+              <span className="text-red-400">↑ +18% (7 days)</span>
+            </div>
+            <div className="h-24 bg-slate-800/30 rounded"></div>
+            <div className="flex justify-between items-center text-sm">
+              <span>Meta Ads CPM Trend</span>
+              <span className="text-green-400">↓ -12% (14 days)</span>
+            </div>
           </div>
         </CardContent>
-        {!isPremium && <PremiumLock feature="Competitor Analysis" />}
+        {!isPremium && (
+          <PremiumLock 
+            feature="Live Market Trends" 
+            specificBenefit="Enterprise users get hourly CPC updates, platform algorithm alerts, and predictive trend forecasting"
+          />
+        )}
       </Card>
 
       {/* Action Items */}
