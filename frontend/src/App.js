@@ -20,7 +20,7 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       <Toaster position="top-right" richColors />
-      
+
       {/* Header */}
       <header className="border-b border-slate-800 bg-slate-950/50 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
@@ -52,7 +52,7 @@ function App() {
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         {!analysisResult ? (
-          <BusinessInputForm 
+          <BusinessInputForm
             onAnalysisComplete={handleAnalysisComplete}
             isLoading={isLoading}
             setIsLoading={setIsLoading}
@@ -65,7 +65,7 @@ function App() {
       {/* Footer */}
       <footer className="border-t border-slate-800 mt-16 py-8">
         <div className="container mx-auto px-4 text-center text-slate-400 text-sm">
-          <p>Powered by AI • Built on Emergent Platform</p>
+          <p>Powered by AstraMark AI • Official Agentic Interface</p>
         </div>
       </footer>
     </div>
