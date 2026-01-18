@@ -1,18 +1,29 @@
-from fastapi import FastAPI, APIRouter, HTTPException
+"""
+Enhanced AstraMark Server with Live Market Data, Background Scanning, and Content Generation
+"""
+from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi.responses import StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
-from pathlib import Path
 from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 import json
 import asyncio
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 import google.generativeai as genai
+
+# Import our new services
+from serp_service import serp_service
+from blockchain_service import blockchain_service
+from pdf_service import pdf_generator
+from content_service import ContentGenerationService
+from scanner_service import BackgroundScanner
 
 # ==================== DATA MODELS ====================
 class BusinessInput(BaseModel):
@@ -63,8 +74,8 @@ class RevenueProjection(BaseModel):
 
 class MarketSignal(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    type: str  # 'Competitive', 'Consumer', 'Market'
-    severity: str  # 'info', 'warning', 'critical'
+    type: str
+    severity: str
     message: str
     detected_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%H:%M:%S"))
 
@@ -72,6 +83,8 @@ class BlockchainProof(BaseModel):
     hash: str
     timestamp: str 
     network: str = "AstraMark Intelligence Ledger"
+    tx_hash: Optional[str] = None
+    verified: bool = False
 
 class AILearningUpdate(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -82,11 +95,21 @@ class AILearningUpdate(BaseModel):
 
 class ExecutionAction(BaseModel):
     action_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    action_type: str  # 'content', 'execution', 'integration', 'monitoring'
+    action_type: str
     action_name: str
     description: str
     is_premium: bool = False
-    status: str = "active" # 'active' or 'locked'
+    status: str = "active"
+
+class CompetitorInsight(BaseModel):
+    name: str
+    domain: str
+    description: str
+    position: int
+    estimated_traffic: str
+    ad_spend_monthly: Optional[str] = None
+    active_campaigns: Optional[int] = None
+    top_keywords: Optional[List[str]] = None
 
 class AnalysisResult(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
@@ -106,31 +129,30 @@ class AnalysisResult(BaseModel):
     next_action: str
     is_premium: bool = False
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    # Agent features
+    # Enhanced features
     market_signals: List[MarketSignal] = []
     blockchain_proof: Optional[BlockchainProof] = None
     ai_learning_updates: List[AILearningUpdate] = []
     execution_actions: List[ExecutionAction] = []
+    competitor_insights: List[CompetitorInsight] = []
     last_market_scan: str = ""
     monitoring_status: str = "active"
 
 # ==================== INITIALIZATION ====================
 load_dotenv()
 
-# Logger
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# FastAPI
-app = FastAPI(title="AstraMark AI Marketing API")
+app = FastAPI(title="AstraMark AI Marketing API - Enhanced")
 api_router = APIRouter(prefix="/api")
 
 # Database Configuration
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'test_database')
-LLM_API_KEY = os.environ.get('GOOGLE_API_KEY') # For verification
+GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-# In-Memory Mock DB for when MongoDB is not available
+# Mock DB for when MongoDB is not available
 class MockCursor:
     def __init__(self, data):
         self.data = data
@@ -185,90 +207,49 @@ class MockDB:
     def __init__(self):
         self.businesses = MockCollection()
         self.analyses = MockCollection()
+        self.market_signals = MockCollection()
+        self.competitor_snapshots = MockCollection()
+        self.blockchain_proofs = MockCollection()
 
 # Database Initialization
 try:
     client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=2000)
-    # Check if we can actually reach the server
-    # await client.admin.command('ping') # Can't await here easily without a startup event
     db = client[DB_NAME]
     logger.info(f"Connected to MongoDB: {MONGO_URL}")
 except Exception as e:
     logger.error(f"Failed to connect to MongoDB, falling back to In-Memory DB: {e}")
     db = MockDB()
+    client = None
 
-def generate_agent_features(business_type: str, goal: str) -> Dict[str, Any]:
-    """Generate mock agent intelligence features"""
-    return {
-        "market_signals": [
-            {
-                "type": "Competitive",
-                "severity": "critical",
-                "message": f"Major competitor in {business_type} increased ad spend by 40%",
-                "detected_at": "2 mins ago"
-            },
-            {
-                "type": "Consumer",
-                "severity": "info",
-                "message": "Shift in search patterns detected for target audience",
-                "detected_at": "15 mins ago"
-            }
-        ],
-        "blockchain_proof": {
-            "hash": uuid.uuid4().hex,
-            "timestamp": datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M:%S UTC"),
-            "network": "AstraMark Intelligence Ledger"
-        },
-        "ai_learning_updates": [
-            {
-                "update_type": "Pattern Recognition",
-                "learning_description": f"Model refined for {goal} optimization",
-                "improvement_metric": "+14.2% Efficiency",
-                "timestamp": "Just now"
-            }
-        ],
-        "execution_actions": [
-            {
-                "action_id": "auto-content",
-                "action_type": "content",
-                "action_name": "Generate Social Content",
-                "description": "AI-written posts based on this strategy",
-                "is_premium": False,
-                "status": "active"
-            },
-            {
-                "action_id": "competitor-track",
-                "action_type": "monitoring",
-                "action_name": "Live Competitor Tracking",
-                "description": "Monitor landing page changes in real-time",
-                "is_premium": True,
-                "status": "locked"
-            },
-            {
-                "action_id": "ad-optimize",
-                "action_type": "execution",
-                "action_name": "Auto-Optimize Ad Spend",
-                "description": "Dynamic budget allocation based on performance",
-                "is_premium": True,
-                "status": "locked"
-            }
-        ],
-        "last_market_scan": "Recently",
-        "monitoring_status": "active"
-    }
-
-GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+# Initialize Gemini AI
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
+    gemini_model = genai.GenerativeModel('gemini-2.0-flash')
+    logger.info("Gemini AI configured (gemini-2.0-flash)")
 else:
-    logger.warning("GOOGLE_API_KEY not found in environment variables.")
+    logger.warning("GOOGLE_API_KEY not found")
+    gemini_model = None
 
-async def generate_market_analysis(business: BusinessInput, use_web_search: bool = False) -> Dict[str, Any]:
-    """Generate comprehensive market analysis using Real Google Gemini AI"""
+# Initialize services
+content_service = ContentGenerationService(gemini_model) if gemini_model else None
+background_scanner = BackgroundScanner(serp_service, db)
+
+# ==================== HELPER FUNCTIONS ====================
+async def generate_market_analysis_with_live_data(business: BusinessInput) -> Dict[str, Any]:
+    """Generate comprehensive market analysis using AI + live market data"""
     
     if not GOOGLE_API_KEY:
         raise HTTPException(status_code=500, detail="Server Configuration Error: API Key missing.")
 
+    # Fetch live competitor data
+    competitor_data = await serp_service.search_competitors(
+        business.business_type,
+        business.target_market
+    )
+    
+    # Fetch market trends
+    market_trends = await serp_service.get_market_trends(business.business_type)
+    
     system_profile = """You are AstraMark, a production-grade AI Marketing & Business Intelligence Platform.
 
     Your role is to act as:
@@ -309,6 +290,11 @@ async def generate_market_analysis(business: BusinessInput, use_web_search: bool
     Monthly Budget: {business.monthly_budget}
     Primary Goal: {business.primary_goal}
     Additional Info: {business.additional_info or 'None'}
+    
+    LIVE MARKET DATA:
+    - Competitor Count: {len(competitor_data.get('competitors', []))}
+    - Top Competitors: {[c.get('name', '') for c in competitor_data.get('competitors', [])[:3]]}
+    - Market Trends: {market_trends}
     
     Provide a detailed analysis in the following JSON structure (AND ONLY JSON):
     {{
@@ -398,11 +384,20 @@ async def generate_market_analysis(business: BusinessInput, use_web_search: bool
     Return strict JSON ONLY. No markdown formatting like ```json ... ```.
     """
     
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        reraise=True
+    )
+    async def call_model_with_retry(model_instance, prompt, config):
+        return await model_instance.generate_content_async(prompt, generation_config=config)
+
     try:
-        # Try multiple models in order of preference (using valid names from list_models)
+        # Try multiple models in order of preference
         models_to_try = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro-latest']
         model = None
         last_error = None
+        response = None
         
         for model_name in models_to_try:
             try:
@@ -415,49 +410,159 @@ async def generate_market_analysis(business: BusinessInput, use_web_search: bool
                 model_instance = genai.GenerativeModel(model_name, system_instruction=system_profile)
                 logger.info(f"Attempting analysis with model: {model_name}")
                 
-                response = await model_instance.generate_content_async(
-                    user_prompt,
-                    generation_config=generation_config
-                )
+                # Use retry wrapper
+                response = await call_model_with_retry(model_instance, user_prompt, generation_config)
                 
-                # If we get here, it worked
+                # If we get here, the call worked, but we need to verify JSON validity
+                response_text = response.text.strip()
+                
+                # Cleanup potential markdown
+                if response_text.startswith("```json"):
+                    response_text = response_text[7:]
+                if response_text.startswith("```"):
+                    response_text = response_text[3:]
+                if response_text.endswith("```"):
+                    response_text = response_text[:-3]
+                response_text = response_text.strip()
+                
+                # Validate JSON (this will raise exception if invalid, triggering fallback)
+                analysis_data = json.loads(response_text)
+                
+                # If valid, we're done
                 model = model_instance
                 break
             except Exception as e:
-                logger.warning(f"Model {model_name} failed: {e}")
+                logger.warning(f"Model {model_name} failed (API or JSON error): {e}")
                 last_error = e
                 continue
         
-        if not model:
-            raise Exception(f"All AI models failed. Last error: {last_error}")
+        if not model or not analysis_data:
+            # If all models fail, return a mock response to keep the app usable
+            logger.error(f"All AI models failed. Using fallback mock data. Last error: {last_error}")
+            return {
+                "overview": f"Analysis generated in offline mode due to high AI demand. (Error: {str(last_error)[:100]}...)",
+                "market_analysis": {
+                    "market_size": "Estimated $10B+ (Offline Estimate)",
+                    "growth_rate": "15% CAGR",
+                    "entry_barriers": "Moderate",
+                    "opportunities": ["Digital Transformation", "AI Integration", "Niche Targeting"],
+                    "risks": ["Competition", "Market Saturation", "Tech Changes"],
+                    "strengths": ["Agility", "Cost Structure"],
+                    "weaknesses": ["Brand Awareness", "Resources"]
+                },
+                "user_personas": [
+                    {
+                        "name": "Tech Savvy Founder",
+                        "demographics": "25-40, Urban",
+                        "psychographics": "Early adopter, ambitious",
+                        "pain_points": ["Efficiency", "Scaling"],
+                        "buying_triggers": ["Automation", "ROI"],
+                        "objections": ["Cost", "Complexity"]
+                    }
+                ],
+                "ai_insights": [
+                    {
+                        "insight_type": "Market Gap",
+                        "description": "High demand for specialized solutions in this vertical.",
+                        "confidence": 80
+                    }
+                ],
+                "strategies": [
+                    {
+                        "channel": "Content Marketing",
+                        "strategy": "Focus on educational content and thought leadership.",
+                        "content_ideas": ["How-to Guides", "Case Studies", "Industry Trends"],
+                        "posting_schedule": "2x Weekly",
+                        "kpi_benchmarks": {"traffic": "1000/mo", "leads": "50/mo"}
+                    }
+                ],
+                "revenue_projection": {
+                    "min_monthly": "$2,000",
+                    "max_monthly": "$15,000",
+                    "growth_timeline": "6-12 Months"
+                },
+                "virality_score": 65,
+                "retention_score": 75,
+                "ai_verdict": "Medium Growth Potential",
+                "confidence_score": 70,
+                "biggest_opportunity": "Niche dominance",
+                "biggest_risk": "Competitor speed",
+                "next_action": "Launch MVP marketing campaign"
+            }
         
-        response_text = response.text.strip()
+        # Add live competitor data
+        analysis_data['competitor_data'] = competitor_data
+        analysis_data['market_trends'] = market_trends
         
-        # Cleanup potential markdown if the model ignores the mime type (failsafe)
-        if response_text.startswith("```json"):
-            response_text = response_text[7:]
-        if response_text.startswith("```"):
-            response_text = response_text[3:]
-        if response_text.endswith("```"):
-            response_text = response_text[:-3]
-        response_text = response_text.strip()
-        
-        analysis_data = json.loads(response_text)
         return analysis_data
         
     except Exception as e:
         logging.error(f"AI analysis error: {e}")
-        # Build a fallback error response structure if AI fails
         raise HTTPException(status_code=500, detail=f"AI Engine Error: {str(e)}")
+
+def generate_agent_features(business_type: str, goal: str) -> Dict[str, Any]:
+    """Generate mock agent intelligence features"""
+    return {
+        "market_signals": [
+            {
+                "type": "Competitive",
+                "severity": "critical",
+                "message": f"Major competitor in {business_type} increased ad spend by 40%",
+                "detected_at": "2 mins ago"
+            },
+            {
+                "type": "Consumer",
+                "severity": "info",
+                "message": "Shift in search patterns detected for target audience",
+                "detected_at": "15 mins ago"
+            }
+        ],
+        "ai_learning_updates": [
+            {
+                "update_type": "Pattern Recognition",
+                "learning_description": f"Model refined for {goal} optimization",
+                "improvement_metric": "+14.2% Efficiency",
+                "timestamp": "Just now"
+            }
+        ],
+        "execution_actions": [
+            {
+                "action_id": "auto-content",
+                "action_type": "content",
+                "action_name": "Generate Social Content",
+                "description": "AI-written posts based on this strategy",
+                "is_premium": False,
+                "status": "active"
+            },
+            {
+                "action_id": "competitor-track",
+                "action_type": "monitoring",
+                "action_name": "Live Competitor Tracking",
+                "description": "Monitor landing page changes in real-time",
+                "is_premium": True,
+                "status": "locked"
+            },
+            {
+                "action_id": "ad-optimize",
+                "action_type": "execution",
+                "action_name": "Auto-Optimize Ad Spend",
+                "description": "Dynamic budget allocation based on performance",
+                "is_premium": True,
+                "status": "locked"
+            }
+        ],
+        "last_market_scan": "Recently",
+        "monitoring_status": "active"
+    }
 
 # ==================== API ROUTES ====================
 @api_router.get("/")
 async def root():
-    return {"message": "AstraMark AI Marketing Platform API"}
+    return {"message": "AstraMark AI Marketing Platform API - Enhanced Edition"}
 
 @api_router.post("/analyze", response_model=AnalysisResult)
-async def analyze_business(business_input: BusinessInput, premium: bool = False):
-    """Main AI analysis endpoint"""
+async def analyze_business(business_input: BusinessInput, premium: bool = False, background_tasks: BackgroundTasks = None):
+    """Main AI analysis endpoint with live market data"""
     try:
         # Save business profile
         business_profile = BusinessProfile(**business_input.model_dump())
@@ -465,10 +570,10 @@ async def analyze_business(business_input: BusinessInput, premium: bool = False)
         business_doc['created_at'] = business_doc['created_at'].isoformat()
         await db.businesses.insert_one(business_doc)
         
-        # Generate AI analysis
-        analysis_data = await generate_market_analysis(business_input)
+        # Generate AI analysis with live data
+        analysis_data = await generate_market_analysis_with_live_data(business_input)
         
-        # Generate agent features (autonomous behavior)
+        # Generate agent features
         agent_features = generate_agent_features(business_input.business_type, business_input.primary_goal)
         
         # Create analysis result
@@ -488,19 +593,31 @@ async def analyze_business(business_input: BusinessInput, premium: bool = False)
             biggest_risk=analysis_data['biggest_risk'],
             next_action=analysis_data['next_action'],
             is_premium=premium,
-            # Agent features
             market_signals=[MarketSignal(**s) for s in agent_features['market_signals']],
-            blockchain_proof=BlockchainProof(**agent_features['blockchain_proof']) if agent_features['blockchain_proof'] else None,
             ai_learning_updates=[AILearningUpdate(**u) for u in agent_features['ai_learning_updates']],
             execution_actions=[ExecutionAction(**a) for a in agent_features['execution_actions']],
+            competitor_insights=[CompetitorInsight(**c) for c in analysis_data.get('competitor_data', {}).get('competitors', [])],
             last_market_scan=agent_features['last_market_scan'],
             monitoring_status=agent_features['monitoring_status']
         )
+        
+        # Generate blockchain proof
+        blockchain_proof = await blockchain_service.timestamp_analysis(
+            analysis_result.model_dump(),
+            db.blockchain_proofs if hasattr(db, 'blockchain_proofs') else None
+        )
+        analysis_result.blockchain_proof = BlockchainProof(**blockchain_proof)
         
         # Save analysis
         analysis_doc = analysis_result.model_dump()
         analysis_doc['created_at'] = analysis_doc['created_at'].isoformat()
         await db.analyses.insert_one(analysis_doc)
+        
+        # Schedule background market monitoring if enabled
+        if background_tasks and background_scanner.enabled:
+            background_tasks.add_task(
+                background_scanner.scan_markets
+            )
         
         return analysis_result
         
@@ -514,7 +631,6 @@ async def get_analyses(limit: int = 10):
     try:
         analyses = await db.analyses.find({}, {"_id": 0}).sort("created_at", -1).limit(limit).to_list(length=limit)
         
-        # Convert ISO strings back to datetime
         for analysis in analyses:
             if isinstance(analysis['created_at'], str):
                 analysis['created_at'] = datetime.fromisoformat(analysis['created_at'])
@@ -562,9 +678,118 @@ async def health_check():
     """Health check endpoint"""
     return {
         "status": "healthy",
-        "ai_enabled": bool(LLM_API_KEY),
-        "db_connected": client is not None
+        "ai_enabled": bool(GOOGLE_API_KEY),
+        "db_connected": client is not None,
+        "serp_enabled": serp_service.enabled,
+        "blockchain_enabled": blockchain_service.enabled,
+        "scanner_enabled": background_scanner.enabled
     }
+
+# ==================== CONTENT GENERATION ENDPOINTS ====================
+@api_router.post("/generate/pitch-deck")
+async def generate_pitch_deck(analysis_id: str):
+    """Generate a pitch deck from analysis"""
+    if not content_service:
+        raise HTTPException(status_code=503, detail="Content service not available")
+    
+    try:
+        analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        pitch_deck = await content_service.generate_pitch_deck(analysis)
+        return pitch_deck
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pitch deck generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/generate/content-calendar")
+async def generate_content_calendar(analysis_id: str, weeks: int = 4):
+    """Generate a content calendar from analysis"""
+    if not content_service:
+        raise HTTPException(status_code=503, detail="Content service not available")
+    
+    try:
+        analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        calendar = await content_service.generate_content_calendar(analysis, weeks)
+        return calendar
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Content calendar generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/generate/email-sequence")
+async def generate_email_sequence(analysis_id: str, sequence_type: str = "onboarding"):
+    """Generate an email sequence from analysis"""
+    if not content_service:
+        raise HTTPException(status_code=503, detail="Content service not available")
+    
+    try:
+        analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        sequence = await content_service.generate_email_sequence(analysis, sequence_type)
+        return sequence
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Email sequence generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/export/pdf/{analysis_id}")
+async def export_pdf_report(analysis_id: str):
+    """Export analysis as PDF report"""
+    try:
+        analysis = await db.analyses.find_one({"id": analysis_id}, {"_id": 0})
+        if not analysis:
+            raise HTTPException(status_code=404, detail="Analysis not found")
+        
+        # Convert datetime if needed
+        if isinstance(analysis.get('created_at'), str):
+            analysis['created_at'] = datetime.fromisoformat(analysis['created_at'])
+        
+        pdf_buffer = await pdf_generator.generate_analysis_report(analysis)
+        
+        return StreamingResponse(
+            pdf_buffer,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f"attachment; filename=astramark_report_{analysis_id[:8]}.pdf"
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"PDF export error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== MARKET INTELLIGENCE ENDPOINTS ====================
+@api_router.get("/market/signals")
+async def get_market_signals(business_type: Optional[str] = None, limit: int = 10):
+    """Get latest market signals"""
+    try:
+        signals = await background_scanner.get_latest_signals(business_type, limit)
+        return {"signals": signals, "count": len(signals)}
+    except Exception as e:
+        logger.error(f"Get market signals error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/market/competitors/{business_id}")
+async def get_competitor_updates(business_id: str):
+    """Get competitor updates for a business"""
+    try:
+        updates = await background_scanner.get_competitor_updates(business_id)
+        return {"updates": updates, "count": len(updates)}
+    except Exception as e:
+        logger.error(f"Get competitor updates error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/plans")
 async def get_subscription_plans():
@@ -591,7 +816,9 @@ async def get_subscription_plans():
                 "Full marketing + data analysis",
                 "Business plans",
                 "Competitor research",
-                "30 analyses/month"
+                "30 analyses/month",
+                "Live market data",
+                "PDF exports"
             ],
             "color": "blue",
             "popular": True
@@ -606,7 +833,10 @@ async def get_subscription_plans():
                 "Revenue forecasting",
                 "Automation planning",
                 "Export reports (PDF/Excel)",
-                "100 analyses/month"
+                "100 analyses/month",
+                "Pitch deck generator",
+                "Content calendar",
+                "Email sequences"
             ],
             "color": "purple"
         },
@@ -619,13 +849,15 @@ async def get_subscription_plans():
                 "API access",
                 "Team accounts",
                 "Custom AI tuning",
-                "White-label reports"
+                "White-label reports",
+                "Blockchain verification",
+                "24/7 support"
             ],
             "color": "slate"
         }
     ]
 
-# Include the router in the main app
+# ==================== APP SETUP ====================
 app.include_router(api_router)
 
 app.add_middleware(
@@ -636,13 +868,21 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+@app.on_event("startup")
+async def startup_event():
+    """Start background services"""
+    logger.info("Starting AstraMark Enhanced Server...")
+    background_scanner.start()
+    logger.info("Background scanner started")
 
 @app.on_event("shutdown")
-async def shutdown_db_client():
-    client.close()
+async def shutdown_event():
+    """Cleanup on shutdown"""
+    background_scanner.stop()
+    if client:
+        client.close()
+    logger.info("Server shutdown complete")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8001)

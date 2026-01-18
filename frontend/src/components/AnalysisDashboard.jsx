@@ -3,12 +3,12 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  TrendingUp, 
-  Users, 
-  Lightbulb, 
-  Target, 
-  DollarSign, 
+import {
+  TrendingUp,
+  Users,
+  Lightbulb,
+  Target,
+  DollarSign,
   Lock,
   AlertTriangle,
   CheckCircle2,
@@ -21,6 +21,8 @@ import { useState } from 'react';
 import { LiveAgentPanel } from '@/components/LiveAgentPanel';
 import { BlockchainProofCard } from '@/components/BlockchainProofCard';
 import { ExecutionActions } from '@/components/ExecutionActions';
+import { SWOTAnalysisGrid } from '@/components/SWOTAnalysisGrid';
+import { AdPreviewCard } from '@/components/AdPreviewCard';
 
 export function AnalysisDashboard({ analysis }) {
   const [isPremium] = useState(analysis.is_premium || false);
@@ -70,7 +72,7 @@ export function AnalysisDashboard({ analysis }) {
           </div>
           <VerdictBadge />
         </div>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
           <div className="bg-slate-900/50 rounded-lg p-4">
             <div className="text-slate-400 text-sm mb-1">Confidence Score</div>
@@ -116,6 +118,7 @@ export function AnalysisDashboard({ analysis }) {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <div className="text-slate-400 text-sm mb-1">Market Size</div>
@@ -130,27 +133,13 @@ export function AnalysisDashboard({ analysis }) {
             <div className="text-slate-400 text-sm mb-2">Entry Barriers</div>
             <div className="text-white">{analysis.market_analysis.entry_barriers}</div>
           </div>
-          <div>
-            <div className="text-slate-400 text-sm mb-2">Key Opportunities</div>
-            <ul className="space-y-2">
-              {analysis.market_analysis.opportunities.map((opp, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-white">
-                  <CheckCircle2 className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
-                  <span>{opp}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <div className="text-slate-400 text-sm mb-2">Potential Risks</div>
-            <ul className="space-y-2">
-              {analysis.market_analysis.risks.map((risk, idx) => (
-                <li key={idx} className="flex items-start gap-2 text-white">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400 mt-0.5 flex-shrink-0" />
-                  <span>{risk}</span>
-                </li>
-              ))}
-            </ul>
+
+          {/* Enhanced SWOT Grid */}
+          <div className="mt-6">
+            <h4 className="text-white font-semibold mb-4 flex items-center gap-2">
+              <Shield className="w-4 h-4 text-purple-400" /> Strategic Analysis (SWOT)
+            </h4>
+            <SWOTAnalysisGrid marketAnalysis={analysis.market_analysis} />
           </div>
         </CardContent>
       </Card>
@@ -242,8 +231,8 @@ export function AnalysisDashboard({ analysis }) {
           <Tabs defaultValue={analysis.strategies[0]?.channel || 'SEO'} className="w-full">
             <TabsList className="grid w-full grid-cols-4 bg-slate-800">
               {analysis.strategies.map((strategy, idx) => (
-                <TabsTrigger 
-                  key={idx} 
+                <TabsTrigger
+                  key={idx}
                   value={strategy.channel}
                   data-testid={`strategy-tab-${strategy.channel.toLowerCase().replace(/\s+/g, '-')}`}
                   className="data-[state=active]:bg-purple-600"
@@ -254,20 +243,35 @@ export function AnalysisDashboard({ analysis }) {
             </TabsList>
             {analysis.strategies.map((strategy, idx) => (
               <TabsContent key={idx} value={strategy.channel} className="space-y-4 mt-4">
-                <div>
-                  <h4 className="text-white font-semibold mb-2">Strategy</h4>
-                  <p className="text-slate-300">{strategy.strategy}</p>
-                </div>
-                <div>
-                  <h4 className="text-white font-semibold mb-2">Content Ideas</h4>
-                  <ul className="space-y-2">
-                    {strategy.content_ideas.map((idea, i) => (
-                      <li key={i} className="flex items-start gap-2 text-slate-300">
-                        <ArrowRight className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
-                        <span>{idea}</span>
-                      </li>
-                    ))}
-                  </ul>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Left Col: Strategy Details */}
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-white font-semibold mb-2">Strategy</h4>
+                      <p className="text-slate-300">{strategy.strategy}</p>
+                    </div>
+                    <div>
+                      <h4 className="text-white font-semibold mb-2">Content Ideas</h4>
+                      <ul className="space-y-2">
+                        {strategy.content_ideas.map((idea, i) => (
+                          <li key={i} className="flex items-start gap-2 text-slate-300">
+                            <ArrowRight className="w-4 h-4 text-purple-400 mt-0.5 flex-shrink-0" />
+                            <span>{idea}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* Right Col: Ad Preview */}
+                  <div className="bg-slate-950/30 rounded-xl p-4 border border-slate-800/50">
+                    <h4 className="text-xs uppercase tracking-wider text-slate-500 mb-3 text-center">Live Preview Generator</h4>
+                    <AdPreviewCard
+                      platform={strategy.channel}
+                      content={strategy.content_ideas[0]}
+                      headline={strategy.content_ideas[1] || "AstraMark Strategy"}
+                    />
+                  </div>
                 </div>
                 <div>
                   <h4 className="text-white font-semibold mb-2">Posting Schedule</h4>
@@ -364,8 +368,8 @@ export function AnalysisDashboard({ analysis }) {
           </div>
         </CardContent>
         {!isPremium && (
-          <PremiumLock 
-            feature="Live Competitor Intelligence" 
+          <PremiumLock
+            feature="Live Competitor Intelligence"
             specificBenefit="See exact ad spend, campaign strategies, landing pages, and keyword targets of your top 3 competitors updated in real-time"
           />
         )}
@@ -399,8 +403,8 @@ export function AnalysisDashboard({ analysis }) {
           </div>
         </CardContent>
         {!isPremium && (
-          <PremiumLock 
-            feature="Live Market Trends" 
+          <PremiumLock
+            feature="Live Market Trends"
             specificBenefit="Enterprise users get hourly CPC updates, platform algorithm alerts, and predictive trend forecasting"
           />
         )}
@@ -443,7 +447,7 @@ export function AnalysisDashboard({ analysis }) {
         </CardHeader>
         <CardContent>
           <p className="text-white text-lg mb-4">{analysis.next_action}</p>
-          <Button 
+          <Button
             data-testid="take-action-btn"
             className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
