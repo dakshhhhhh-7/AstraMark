@@ -5,13 +5,15 @@ Creates pitch decks, email sequences, and content calendars
 import logging
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 logger = logging.getLogger(__name__)
 
 class ContentGenerationService:
-    def __init__(self, gemini_model):
-        self.model = gemini_model
+    def __init__(self, client: genai.Client):
+        self.client = client
+        self.model_name = "gemini-2.0-flash"
     
     async def generate_pitch_deck(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Generate a complete pitch deck based on analysis"""
@@ -41,12 +43,16 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = genai.types.GenerationConfig(
+            generation_config = types.GenerateContentConfig(
                 temperature=0.7,
                 response_mime_type="application/json"
             )
             
-            response = await self.model.generate_content_async(prompt, generation_config=generation_config)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=generation_config
+            )
             import json
             pitch_deck = json.loads(response.text.strip())
             
@@ -101,12 +107,16 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = genai.types.GenerationConfig(
+            generation_config = types.GenerateContentConfig(
                 temperature=0.8,
                 response_mime_type="application/json"
             )
             
-            response = await self.model.generate_content_async(prompt, generation_config=generation_config)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=generation_config
+            )
             import json
             calendar = json.loads(response.text.strip())
             
@@ -153,12 +163,16 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = genai.types.GenerationConfig(
+            generation_config = types.GenerateContentConfig(
                 temperature=0.7,
                 response_mime_type="application/json"
             )
             
-            response = await self.model.generate_content_async(prompt, generation_config=generation_config)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=generation_config
+            )
             import json
             sequence = json.loads(response.text.strip())
             
@@ -204,12 +218,16 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = genai.types.GenerationConfig(
+            generation_config = types.GenerateContentConfig(
                 temperature=0.9,
                 response_mime_type="application/json"
             )
             
-            response = await self.model.generate_content_async(prompt, generation_config=generation_config)
+            response = await self.client.aio.models.generate_content(
+                model=self.model_name,
+                contents=prompt,
+                config=generation_config
+            )
             import json
             posts_data = json.loads(response.text.strip())
             
