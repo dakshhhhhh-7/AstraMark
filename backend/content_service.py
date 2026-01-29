@@ -10,10 +10,15 @@ from google.genai import types
 
 logger = logging.getLogger(__name__)
 
+# Use same model names as server_enhanced (API supports 2.5-flash, 2.5-pro, 2.0-flash)
+PRIMARY_MODEL = "models/gemini-2.5-flash"
+FALLBACK_MODEL = "models/gemini-2.0-flash"
+
+
 class ContentGenerationService:
     def __init__(self, client: genai.Client):
         self.client = client
-        self.model_name = "gemini-2.0-flash"
+        self.model_name = PRIMARY_MODEL
     
     async def generate_pitch_deck(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Generate a complete pitch deck based on analysis"""

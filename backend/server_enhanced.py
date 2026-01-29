@@ -1,16 +1,28 @@
 """
-Enhanced AstraMark Server with Live Market Data, Background Scanning, and Content Generation
+Enhanced AstraMark Server with Live Market Data, Background Scanning, Content Generation, and Auth
 """
-from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi import (
+    FastAPI,
+    APIRouter,
+    HTTPException,
+    BackgroundTasks,
+    Depends,
+    Request,
+    status,
+)
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from dotenv import load_dotenv
 from motor.motor_asyncio import AsyncIOMotorClient
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from pydantic import BaseModel, EmailStr, Field
 import os
 import logging
 from typing import List, Optional, Dict, Any
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import json
 import asyncio
 from tenacity import retry, stop_after_attempt, wait_exponential
@@ -18,7 +30,6 @@ from contextlib import asynccontextmanager
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
-from fastapi import Request
 
 from google import genai
 from google.genai import types
@@ -40,9 +51,6 @@ from models import (
 from logging_config import configure_logging
 from middleware.error_handler import add_exception_handlers
 
-# ==================== DATA MODELS ====================
-
-
 # ==================== INITIALIZATION ====================
 load_dotenv()
 configure_logging()
@@ -52,6 +60,21 @@ logger = logging.getLogger(__name__)
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'test_database')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+
+# Auth / JWT configuration
+SECRET_KEY = os.environ.get("JWT_SECRET_KEY", "change-this-secret-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+
+"""
+Password hashing configuration.
+
+Using pbkdf2_sha256 instead of bcrypt to avoid native bcrypt
+backend/version issues and 72-byte password limits. For an MVP this is
+more than sufficient and keeps deployment simpler.
+"""
+pwd_context = CryptContext(schemes=["pbkdf2_sha256"], deprecated="auto")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
 # Global Services
 client = None
@@ -114,6 +137,92 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 add_exception_handlers(app)
 api_router = APIRouter(prefix="/api")
+
+# ==================== AUTH MODELS & HELPERS ====================
+
+
+class UserBase(BaseModel):
+    email: EmailStr
+    full_name: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    # bcrypt has a 72-byte limit; enforce a safe length here
+    password: str = Field(..., min_length=8, max_length=72)
+
+
+class UserInDB(UserBase):
+    id: str
+    hashed_password: str
+
+
+class Token(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
+class TokenData(BaseModel):
+    email: Optional[EmailStr] = None
+
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    return pwd_context.hash(password)
+
+
+def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
+
+
+async def get_user_by_email(email: str) -> Optional[UserInDB]:
+    """Fetch a user document by email and map to UserInDB."""
+    if db is None:
+        return None
+    user_doc = await db.users.find_one({"email": email})
+    if not user_doc:
+        return None
+    return UserInDB(
+        id=str(user_doc.get("id") or user_doc.get("_id")),
+        email=user_doc["email"],
+        full_name=user_doc.get("full_name"),
+        hashed_password=user_doc["hashed_password"],
+    )
+
+
+async def authenticate_user(email: str, password: str) -> Optional[UserInDB]:
+    user = await get_user_by_email(email)
+    if not user:
+        return None
+    if not verify_password(password, user.hashed_password):
+        return None
+    return user
+
+
+async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+        token_data = TokenData(email=email)
+    except JWTError:
+        raise credentials_exception
+    user = await get_user_by_email(token_data.email)  # type: ignore[arg-type]
+    if user is None:
+        raise credentials_exception
+    return user
 
 # ==================== HELPER FUNCTIONS ====================
 async def generate_market_analysis_with_live_data(business: BusinessInput) -> Dict[str, Any]:
@@ -279,7 +388,10 @@ async def generate_market_analysis_with_live_data(business: BusinessInput) -> Di
 
     try:
         # Try multiple models in order of preference
-        models_to_try = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
+        # API key supports: gemini-2.5-flash, gemini-2.5-pro, gemini-2.0-flash (not gemini-1.5-*)
+        PRIMARY_MODEL = "models/gemini-2.5-flash"
+        FALLBACK_MODELS = ["models/gemini-2.5-pro", "models/gemini-2.0-flash"]
+        models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
         model = None
         last_error = None
         analysis_data = None
@@ -447,6 +559,77 @@ def generate_agent_features(business_type: str, goal: str) -> Dict[str, Any]:
 @api_router.get("/")
 async def root():
     return {"message": "AstraMark AI Marketing Platform API - Enhanced Edition"}
+
+
+# ---------- Auth Endpoints ----------
+
+@api_router.post("/auth/register", status_code=status.HTTP_201_CREATED)
+async def register_user(user_in: UserCreate):
+    """
+    Register a new user.
+
+    Expected JSON body (from frontend):
+    {
+      "email": "...",
+      "password": "...",
+      "full_name": "..."
+    }
+    """
+    if db is None:
+        raise HTTPException(status_code=500, detail="Database not initialized")
+
+    existing = await db.users.find_one({"email": user_in.email})
+    if existing:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    user_doc = {
+        "id": str(uuid.uuid4()),
+        "email": user_in.email,
+        "full_name": user_in.full_name,
+        "hashed_password": get_password_hash(user_in.password),
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    }
+    await db.users.insert_one(user_doc)
+
+    return {
+        "id": user_doc["id"],
+        "email": user_doc["email"],
+        "full_name": user_doc["full_name"],
+    }
+
+
+@api_router.post("/auth/token", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    OAuth2 password flow endpoint.
+
+    Frontend sends:
+      username=<email>&password=<password>
+    as x-www-form-urlencoded.
+    """
+    user = await authenticate_user(form_data.username, form_data.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires,
+    )
+    return Token(access_token=access_token, token_type="bearer")
+
+
+@api_router.get("/auth/me")
+async def read_current_user(current_user: UserInDB = Depends(get_current_user)):
+    """Return the currently authenticated user's public profile."""
+    return {
+        "id": current_user.id,
+        "email": current_user.email,
+        "full_name": current_user.full_name,
+    }
 
 @api_router.post("/analyze", response_model=AnalysisResult)
 @limiter.limit("5/minute")
