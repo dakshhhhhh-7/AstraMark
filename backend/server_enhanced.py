@@ -3,20 +3,25 @@ Enhanced AstraMark Server with Live Market Data, Background Scanning, and Conten
 """
 from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
 from fastapi.responses import StreamingResponse
+from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 import os
 import logging
-from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone
 import json
 import asyncio
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from tenacity import retry, stop_after_attempt, wait_exponential
+from contextlib import asynccontextmanager
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi import Request
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 
 # Import our new services
 from serp_service import serp_service
@@ -25,214 +30,90 @@ from pdf_service import pdf_generator
 from content_service import ContentGenerationService
 from scanner_service import BackgroundScanner
 
+# Import models
+from models import (
+    BusinessInput, BusinessProfile, MarketAnalysis, UserPersona, AIInsight,
+    ChannelStrategy, RevenueProjection, MarketSignal, BlockchainProof,
+    AILearningUpdate, ExecutionAction, CompetitorInsight, AnalysisResult
+)
+
+from logging_config import configure_logging
+from middleware.error_handler import add_exception_handlers
+
 # ==================== DATA MODELS ====================
-class BusinessInput(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    business_type: str = Field(..., alias="business_type")
-    target_market: str = Field(..., alias="target_market")
-    monthly_budget: str = Field(..., alias="monthly_budget")
-    primary_goal: str = Field(..., alias="primary_goal")
-    additional_info: Optional[str] = Field(None, alias="additional_info")
 
-class BusinessProfile(BusinessInput):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-
-class MarketAnalysis(BaseModel):
-    market_size: str
-    growth_rate: str
-    entry_barriers: str
-    opportunities: List[str]
-    risks: List[str]
-    strengths: List[str]
-    weaknesses: List[str]
-
-class UserPersona(BaseModel):
-    name: str
-    demographics: str
-    psychographics: str
-    pain_points: List[str]
-    buying_triggers: List[str]
-    objections: List[str]
-
-class AIInsight(BaseModel):
-    insight_type: str
-    description: str
-    confidence: int
-
-class ChannelStrategy(BaseModel):
-    channel: str
-    strategy: str
-    content_ideas: List[str]
-    posting_schedule: str
-    kpi_benchmarks: Dict[str, Any]
-
-class RevenueProjection(BaseModel):
-    min_monthly: str
-    max_monthly: str
-    growth_timeline: str
-
-class MarketSignal(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    type: str
-    severity: str
-    message: str
-    detected_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%H:%M:%S"))
-
-class BlockchainProof(BaseModel):
-    hash: str
-    timestamp: str 
-    network: str = "AstraMark Intelligence Ledger"
-    tx_hash: Optional[str] = None
-    verified: bool = False
-
-class AILearningUpdate(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    update_type: str
-    learning_description: str
-    improvement_metric: str
-    timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).strftime("%H:%M:%S"))
-
-class ExecutionAction(BaseModel):
-    action_id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    action_type: str
-    action_name: str
-    description: str
-    is_premium: bool = False
-    status: str = "active"
-
-class CompetitorInsight(BaseModel):
-    name: str
-    domain: str
-    description: str
-    position: int
-    estimated_traffic: str
-    ad_spend_monthly: Optional[str] = None
-    active_campaigns: Optional[int] = None
-    top_keywords: Optional[List[str]] = None
-
-class AnalysisResult(BaseModel):
-    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    business_id: str
-    overview: str
-    market_analysis: MarketAnalysis
-    user_personas: List[UserPersona]
-    ai_insights: List[AIInsight]
-    strategies: List[ChannelStrategy]
-    revenue_projection: RevenueProjection
-    virality_score: int
-    retention_score: int
-    ai_verdict: str
-    confidence_score: int
-    biggest_opportunity: str
-    biggest_risk: str
-    next_action: str
-    is_premium: bool = False
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    # Enhanced features
-    market_signals: List[MarketSignal] = []
-    blockchain_proof: Optional[BlockchainProof] = None
-    ai_learning_updates: List[AILearningUpdate] = []
-    execution_actions: List[ExecutionAction] = []
-    competitor_insights: List[CompetitorInsight] = []
-    last_market_scan: str = ""
-    monitoring_status: str = "active"
 
 # ==================== INITIALIZATION ====================
 load_dotenv()
-
-logging.basicConfig(level=logging.INFO)
+configure_logging()
 logger = logging.getLogger(__name__)
-
-app = FastAPI(title="AstraMark AI Marketing API - Enhanced")
-api_router = APIRouter(prefix="/api")
 
 # Database Configuration
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = os.environ.get('DB_NAME', 'test_database')
 GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
 
-# Mock DB for when MongoDB is not available
-class MockCursor:
-    def __init__(self, data):
-        self.data = data
-        self._sort_key = None
-        self._sort_order = 1
-        self._limit = None
+# Global Services
+client = None
+db = None
+client_ai = None
+content_service = None
+background_scanner = BackgroundScanner(serp_service, None) 
 
-    def sort(self, key, order=1):
-        self._sort_key = key
-        self._sort_order = order
-        return self
+# Rate Limiter Configuration
+limiter = Limiter(key_func=get_remote_address)
 
-    def limit(self, limit):
-        self._limit = limit
-        return self
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    logger.info("Starting AstraMark Enhanced Server...")
+    global client, db, client_ai, content_service
+    
+    # 1. Database Connection
+    try:
+        client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=5000)
+        await client.admin.command('ping')
+        db = client[DB_NAME]
+        logger.info(f"Connected to MongoDB: {MONGO_URL}")
+        
+        # Update Scanner with DB
+        background_scanner.db = db
+        background_scanner.start() # Assumes non-blocking or managed
+    except Exception as e:
+        logger.critical(f"MongoDB connection failed: {e}")
+        raise e
 
-    async def to_list(self, length=None):
-        data = list(self.data)
-        if self._sort_key:
-            try:
-                data.sort(key=lambda x: str(x.get(self._sort_key, '')), reverse=(self._sort_order == -1))
-            except:
-                pass
-        if self._limit:
-            data = data[:self._limit]
-        return data
+    # 2. AI Client Initialization
+    if GOOGLE_API_KEY:
+        try:
+            client_ai = genai.Client(api_key=GOOGLE_API_KEY)
+            content_service = ContentGenerationService(client_ai)
+            logger.info("Gemini AI Client configured")
+        except Exception as e:
+            logger.error(f"Failed to initialize Gemini Client: {e}")
+            client_ai = None
+            content_service = None
+    else:
+        logger.warning("GOOGLE_API_KEY not found")
+        client_ai = None
+        content_service = None
 
-class MockCollection:
-    def __init__(self):
-        self.data = []
+    yield
+    
+    # Shutdown
+    logger.info("Shutting down...")
+    background_scanner.stop()
+    if client:
+        client.close()
+    logger.info("Server shutdown complete")
 
-    async def insert_one(self, doc):
-        self.data.append(doc)
-        return type('obj', (object,), {'inserted_id': str(uuid.uuid4())})
+    logger.info("Server shutdown complete")
 
-    def find(self, query=None, projection=None):
-        query = query or {}
-        filtered_data = self.data
-        if "id" in query:
-             filtered_data = [d for d in self.data if d.get("id") == query["id"]]
-        return MockCursor(filtered_data)
-
-    async def find_one(self, query=None, projection=None):
-        query = query or {}
-        if "id" in query:
-             for d in self.data:
-                 if d.get("id") == query["id"]:
-                     return d
-        return self.data[0] if self.data else None
-
-class MockDB:
-    def __init__(self):
-        self.businesses = MockCollection()
-        self.analyses = MockCollection()
-        self.market_signals = MockCollection()
-        self.competitor_snapshots = MockCollection()
-        self.blockchain_proofs = MockCollection()
-
-# Database Initialization
-try:
-    client = AsyncIOMotorClient(MONGO_URL, serverSelectionTimeoutMS=2000)
-    db = client[DB_NAME]
-    logger.info(f"Connected to MongoDB: {MONGO_URL}")
-except Exception as e:
-    logger.error(f"Failed to connect to MongoDB, falling back to In-Memory DB: {e}")
-    db = MockDB()
-    client = None
-
-# Initialize Gemini AI
-if GOOGLE_API_KEY:
-    genai.configure(api_key=GOOGLE_API_KEY)
-    gemini_model = genai.GenerativeModel('gemini-2.0-flash')
-    logger.info("Gemini AI configured (gemini-2.0-flash)")
-else:
-    logger.warning("GOOGLE_API_KEY not found")
-    gemini_model = None
-
-# Initialize services
-content_service = ContentGenerationService(gemini_model) if gemini_model else None
-background_scanner = BackgroundScanner(serp_service, db)
+app = FastAPI(title="AstraMark AI Marketing API - Enhanced", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+add_exception_handlers(app)
+api_router = APIRouter(prefix="/api")
 
 # ==================== HELPER FUNCTIONS ====================
 async def generate_market_analysis_with_live_data(business: BusinessInput) -> Dict[str, Any]:
@@ -389,29 +270,36 @@ async def generate_market_analysis_with_live_data(business: BusinessInput) -> Di
         wait=wait_exponential(multiplier=1, min=4, max=10),
         reraise=True
     )
-    async def call_model_with_retry(model_instance, prompt, config):
-        return await model_instance.generate_content_async(prompt, generation_config=config)
+    async def call_model_with_retry(client, model_name, prompt, config):
+        return await client.aio.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=config
+        )
 
     try:
         # Try multiple models in order of preference
-        models_to_try = ['gemini-2.0-flash', 'gemini-flash-latest', 'gemini-pro-latest']
+        models_to_try = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-1.5-pro']
         model = None
         last_error = None
-        response = None
+        analysis_data = None
+        
+        if not client_ai:
+             raise Exception("AI Client not initialized")
         
         for model_name in models_to_try:
             try:
                 # Configure generation
-                generation_config = genai.types.GenerationConfig(
+                generation_config = types.GenerateContentConfig(
                     temperature=0.7,
-                    response_mime_type="application/json" 
+                    response_mime_type="application/json",
+                    system_instruction=system_profile
                 )
                 
-                model_instance = genai.GenerativeModel(model_name, system_instruction=system_profile)
                 logger.info(f"Attempting analysis with model: {model_name}")
                 
                 # Use retry wrapper
-                response = await call_model_with_retry(model_instance, user_prompt, generation_config)
+                response = await call_model_with_retry(client_ai, model_name, user_prompt, generation_config)
                 
                 # If we get here, the call worked, but we need to verify JSON validity
                 response_text = response.text.strip()
@@ -429,7 +317,7 @@ async def generate_market_analysis_with_live_data(business: BusinessInput) -> Di
                 analysis_data = json.loads(response_text)
                 
                 # If valid, we're done
-                model = model_instance
+                model = model_name
                 break
             except Exception as e:
                 logger.warning(f"Model {model_name} failed (API or JSON error): {e}")
@@ -561,7 +449,8 @@ async def root():
     return {"message": "AstraMark AI Marketing Platform API - Enhanced Edition"}
 
 @api_router.post("/analyze", response_model=AnalysisResult)
-async def analyze_business(business_input: BusinessInput, premium: bool = False, background_tasks: BackgroundTasks = None):
+@limiter.limit("5/minute")
+async def analyze_business(request: Request, business_input: BusinessInput, premium: bool = False, background_tasks: BackgroundTasks = None):
     """Main AI analysis endpoint with live market data"""
     try:
         # Save business profile
@@ -674,7 +563,8 @@ async def get_businesses(limit: int = 10):
         raise HTTPException(status_code=500, detail=str(e))
 
 @api_router.get("/health")
-async def health_check():
+@limiter.limit("60/minute")
+async def health_check(request: Request):
     """Health check endpoint"""
     return {
         "status": "healthy",
@@ -863,25 +753,12 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', '*').split(','),
-    allow_methods=["*"],
+    allow_origins=os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(','),
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-async def startup_event():
-    """Start background services"""
-    logger.info("Starting AstraMark Enhanced Server...")
-    background_scanner.start()
-    logger.info("Background scanner started")
 
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    background_scanner.stop()
-    if client:
-        client.close()
-    logger.info("Server shutdown complete")
 
 if __name__ == "__main__":
     import uvicorn
