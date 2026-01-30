@@ -1,7 +1,7 @@
 """
 Enhanced AstraMark Server with Live Market Data, Background Scanning, and Content Generation
 """
-from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks
+from fastapi import FastAPI, APIRouter, HTTPException, BackgroundTasks, Depends
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
@@ -39,6 +39,9 @@ from models import (
 
 from logging_config import configure_logging
 from middleware.error_handler import add_exception_handlers
+from auth.router import router as auth_router
+from auth.dependencies import get_current_active_user
+from users.user_models import User
 
 # ==================== DATA MODELS ====================
 
@@ -114,6 +117,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 add_exception_handlers(app)
 api_router = APIRouter(prefix="/api")
+api_router.include_router(auth_router)
 
 # ==================== HELPER FUNCTIONS ====================
 async def generate_market_analysis_with_live_data(business: BusinessInput) -> Dict[str, Any]:
@@ -450,13 +454,20 @@ async def root():
 
 @api_router.post("/analyze", response_model=AnalysisResult)
 @limiter.limit("5/minute")
-async def analyze_business(request: Request, business_input: BusinessInput, premium: bool = False, background_tasks: BackgroundTasks = None):
-    """Main AI analysis endpoint with live market data"""
+async def analyze_business(
+    request: Request, 
+    business_input: BusinessInput, 
+    premium: bool = False, 
+    background_tasks: BackgroundTasks = None,
+    current_user: User = Depends(get_current_active_user)
+):
+    """Main AI analysis endpoint with live market data (Authenticated)"""
     try:
         # Save business profile
         business_profile = BusinessProfile(**business_input.model_dump())
         business_doc = business_profile.model_dump()
         business_doc['created_at'] = business_doc['created_at'].isoformat()
+        business_doc['owner_id'] = current_user.id # Link to user
         await db.businesses.insert_one(business_doc)
         
         # Generate AI analysis with live data
@@ -500,6 +511,7 @@ async def analyze_business(request: Request, business_input: BusinessInput, prem
         # Save analysis
         analysis_doc = analysis_result.model_dump()
         analysis_doc['created_at'] = analysis_doc['created_at'].isoformat()
+        analysis_doc['owner_id'] = current_user.id # Link to user
         await db.analyses.insert_one(analysis_doc)
         
         # Schedule background market monitoring if enabled
