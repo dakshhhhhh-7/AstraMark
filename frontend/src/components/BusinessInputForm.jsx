@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
 
 export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading }) {
@@ -22,7 +22,7 @@ export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.business_type || !formData.target_market || !formData.monthly_budget || !formData.primary_goal) {
       toast.error('Please fill in all required fields');
       return;

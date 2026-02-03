@@ -23,7 +23,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
         try {
             setLoading(prev => ({ ...prev, pdf: true }));
 
-            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'}/api/export/pdf/${analysisId}`);
+            const response = await fetch(`${process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001'}/api/export/pdf/${analysisId}`);
 
             if (!response.ok) throw new Error('PDF export failed');
 
@@ -51,7 +51,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             setLoading(prev => ({ ...prev, pitchDeck: true }));
 
             const response = await fetch(
-                `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'}/api/generate/pitch-deck?analysis_id=${analysisId}`,
+                `${process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001'}/api/generate/pitch-deck?analysis_id=${analysisId}`,
                 { method: 'POST' }
             );
 
@@ -73,7 +73,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             setLoading(prev => ({ ...prev, calendar: true }));
 
             const response = await fetch(
-                `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'}/api/generate/content-calendar?analysis_id=${analysisId}&weeks=4`,
+                `${process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001'}/api/generate/content-calendar?analysis_id=${analysisId}&weeks=4`,
                 { method: 'POST' }
             );
 
@@ -95,7 +95,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             setLoading(prev => ({ ...prev, email: true }));
 
             const response = await fetch(
-                `${process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001'}/api/generate/email-sequence?analysis_id=${analysisId}&sequence_type=onboarding`,
+                `${process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001'}/api/generate/email-sequence?analysis_id=${analysisId}&sequence_type=onboarding`,
                 { method: 'POST' }
             );
 
