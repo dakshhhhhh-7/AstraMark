@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class ContentGenerationService:
     def __init__(self, client: genai.Client):
         self.client = client
-        self.model_name = "gemini-2.0-flash"
+        self.model_name = "gemini-1.5-flash"
     
     async def generate_pitch_deck(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
         """Generate a complete pitch deck based on analysis"""

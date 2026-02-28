@@ -431,16 +431,16 @@ def generate_agent_features(business_type: str, goal: str) -> Dict[str, Any]:
                 "action_type": "monitoring",
                 "action_name": "Live Competitor Tracking",
                 "description": "Monitor landing page changes in real-time",
-                "is_premium": True,
-                "status": "locked"
+                "is_premium": False,
+                "status": "active"
             },
             {
                 "action_id": "ad-optimize",
                 "action_type": "execution",
                 "action_name": "Auto-Optimize Ad Spend",
                 "description": "Dynamic budget allocation based on performance",
-                "is_premium": True,
-                "status": "locked"
+                "is_premium": False,
+                "status": "active"
             }
         ],
         "last_market_scan": "Recently",
@@ -457,7 +457,7 @@ async def root():
 async def analyze_business(
     request: Request, 
     business_input: BusinessInput, 
-    premium: bool = False, 
+    premium: bool = True, 
     background_tasks: BackgroundTasks = None,
     current_user: User = Depends(get_current_active_user)
 ):

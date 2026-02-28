@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { extractErrorMessage } from '@/lib/utils';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL !== undefined ? process.env.REACT_APP_BACKEND_URL : 'http://localhost:8001';
 const API = `${BACKEND_URL}/api`;
@@ -35,7 +36,7 @@ export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading 
       onAnalysisComplete(response.data);
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error(error.response?.data?.detail || 'Analysis failed. Please try again.');
+      toast.error(extractErrorMessage(error, 'Analysis failed. Please try again.'));
     } finally {
       setIsLoading(false);
     }
