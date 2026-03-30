@@ -5,19 +5,19 @@ Creates pitch decks, email sequences, and content calendars
 import logging
 from typing import Dict, Any, List
 from datetime import datetime, timedelta
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 
 logger = logging.getLogger(__name__)
 
-# Use same model names as server_enhanced (API supports 2.5-flash, 2.5-pro, 2.0-flash)
-PRIMARY_MODEL = "models/gemini-2.5-flash"
-FALLBACK_MODEL = "models/gemini-2.0-flash"
+# Use same model names as server_enhanced
+PRIMARY_MODEL = "gemini-2.0-flash-exp"
+FALLBACK_MODEL = "gemini-1.5-flash"
 
 
 class ContentGenerationService:
-    def __init__(self, client: genai.Client):
-        self.client = client
+    def __init__(self, client):
+        self.client = client  # This is the genai module itself
         self.model_name = PRIMARY_MODEL
     
     async def generate_pitch_deck(self, analysis: Dict[str, Any]) -> Dict[str, Any]:
@@ -48,16 +48,15 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = types.GenerateContentConfig(
-                temperature=0.7,
-                response_mime_type="application/json"
+            model = self.client.GenerativeModel(
+                model_name=self.model_name,
+                generation_config={
+                    "temperature": 0.7,
+                    "response_mime_type": "application/json"
+                }
             )
             
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=generation_config
-            )
+            response = await model.generate_content_async(prompt)
             import json
             pitch_deck = json.loads(response.text.strip())
             
@@ -112,16 +111,15 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = types.GenerateContentConfig(
-                temperature=0.8,
-                response_mime_type="application/json"
+            model = self.client.GenerativeModel(
+                model_name=self.model_name,
+                generation_config={
+                    "temperature": 0.8,
+                    "response_mime_type": "application/json"
+                }
             )
             
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=generation_config
-            )
+            response = await model.generate_content_async(prompt)
             import json
             calendar = json.loads(response.text.strip())
             
@@ -168,16 +166,15 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = types.GenerateContentConfig(
-                temperature=0.7,
-                response_mime_type="application/json"
+            model = self.client.GenerativeModel(
+                model_name=self.model_name,
+                generation_config={
+                    "temperature": 0.7,
+                    "response_mime_type": "application/json"
+                }
             )
             
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=generation_config
-            )
+            response = await model.generate_content_async(prompt)
             import json
             sequence = json.loads(response.text.strip())
             
@@ -223,16 +220,15 @@ class ContentGenerationService:
         """
         
         try:
-            generation_config = types.GenerateContentConfig(
-                temperature=0.9,
-                response_mime_type="application/json"
+            model = self.client.GenerativeModel(
+                model_name=self.model_name,
+                generation_config={
+                    "temperature": 0.9,
+                    "response_mime_type": "application/json"
+                }
             )
             
-            response = await self.client.aio.models.generate_content(
-                model=self.model_name,
-                contents=prompt,
-                config=generation_config
-            )
+            response = await model.generate_content_async(prompt)
             import json
             posts_data = json.loads(response.text.strip())
             

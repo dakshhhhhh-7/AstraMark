@@ -10,6 +10,10 @@ from typing import Dict, List, Any, Optional
 from datetime import datetime
 import json
 import time
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 

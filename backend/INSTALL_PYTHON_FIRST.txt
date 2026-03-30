@@ -1,0 +1,50 @@
+========================================
+STEP 1: INSTALL PYTHON 3.12 (REQUIRED)
+========================================
+
+I cannot install Python for you, but it's very easy:
+
+1. Open your browser
+2. Go to: https://www.python.org/downloads/
+3. Click the big yellow "Download Python 3.12.x" button
+4. Run the downloaded file
+5. ✅ CHECK THE BOX: "Add python.exe to PATH" (IMPORTANT!)
+6. Click "Install Now"
+7. Wait 2-3 minutes
+8. Click "Close"
+
+========================================
+STEP 2: RUN AUTOMATED UPGRADE
+========================================
+
+After Python 3.12 is installed:
+
+1. Close ALL PowerShell/terminal windows
+2. Open a NEW PowerShell
+3. Navigate to backend folder:
+   cd D:\AstraMark\backend
+4. Run the automated script:
+   .\auto_upgrade.bat
+
+The script will automatically:
+- Verify Python 3.12 is installed
+- Backup your old venv
+- Create new venv with Python 3.12
+- Install all dependencies
+- Test MongoDB connection
+- Start the server
+
+Total time: 5 minutes (after Python is installed)
+
+========================================
+NEED HELP?
+========================================
+
+If you get stuck:
+1. Make sure you checked "Add to PATH" during install
+2. Close and reopen PowerShell after installing Python
+3. Run: py -0 (to verify Python 3.12 is listed)
+
+========================================
+
+Ready? Install Python 3.12 first, then run: .\auto_upgrade.bat

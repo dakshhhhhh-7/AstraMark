@@ -57,7 +57,7 @@ markdown-it-py
 MarkupSafe
 mccabe
 mdurl
-motor
+motor==3.3.2
 multidict
 mypy
 mypy_extensions
@@ -80,11 +80,11 @@ pycodestyle
 pycparser
 pydantic
 pydantic-settings
-pydantic_core
+pydantic_core==2.42.0
 pyflakes
 Pygments
 PyJWT
-pymongo
+pymongo==4.6.1
 pyparsing
 pytest
 python-dateutil

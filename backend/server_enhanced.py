@@ -12,6 +12,8 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
 import os
 import logging
+import ssl
+import certifi
 from typing import List, Optional, Dict, Any
 import uuid
 from datetime import datetime, timezone, timedelta
@@ -26,8 +28,8 @@ import jwt
 from jwt.exceptions import InvalidTokenError as JWTError
 from passlib.context import CryptContext
 
-from google import genai
-from google.genai import types
+import google.generativeai as genai
+from google.generativeai import types
 
 # Import our services
 from config import settings, validate_required_settings
@@ -119,10 +121,38 @@ async def lifespan(app: FastAPI):
     
     # 1. Database Connection
     try:
-        client = AsyncIOMotorClient(settings.mongo_url, serverSelectionTimeoutMS=5000)
+        # MongoDB connection with SSL/TLS configuration
+        # Development SSL workaround for Python 3.10 on Windows
+        import ssl
+        import certifi
+        
+        logger.info("Configuring MongoDB connection...")
+        
+        # Build connection parameters
+        connection_params = {
+            "serverSelectionTimeoutMS": 10000,
+            "retryWrites": True,
+            "retryReads": True,
+            "maxPoolSize": 50,
+            "minPoolSize": 10
+        }
+        
+        # Add SSL/TLS parameters based on environment
+        if settings.environment == "development":
+            # Development: relaxed SSL for Windows Python 3.10 compatibility
+            logger.warning("Using relaxed SSL settings for development environment")
+            connection_params["tls"] = True
+            connection_params["tlsAllowInvalidCertificates"] = True
+            connection_params["tlsAllowInvalidHostnames"] = True
+        else:
+            # Production: strict SSL verification
+            connection_params["tls"] = True
+            connection_params["tlsCAFile"] = certifi.where()
+        
+        client = AsyncIOMotorClient(settings.mongo_url, **connection_params)
         await client.admin.command('ping')
         db = client[settings.db_name]
-        logger.info(f"Connected to MongoDB: {settings.mongo_url}")
+        logger.info(f"Connected to MongoDB successfully")
         
         # Initialize services
         auth_service = AuthService(db)
@@ -140,7 +170,8 @@ async def lifespan(app: FastAPI):
     # 2. AI Client Initialization
     if settings.google_api_key:
         try:
-            client_ai = genai.Client(api_key=settings.google_api_key)
+            genai.configure(api_key=settings.google_api_key)
+            client_ai = genai  # Store the configured module
             content_service = ContentGenerationService(client_ai)
             logger.info("Gemini AI Client configured")
         except Exception as e:
@@ -444,23 +475,22 @@ async def generate_market_analysis_with_live_data(business: BusinessInput) -> Di
                 reraise=True
             )
             async def call_gemini():
-                PRIMARY_MODEL = "models/gemini-2.5-flash"
-                FALLBACK_MODELS = ["models/gemini-2.5-pro", "models/gemini-2.0-flash"]
+                PRIMARY_MODEL = "gemini-2.0-flash-exp"
+                FALLBACK_MODELS = ["gemini-1.5-flash", "gemini-1.5-pro"]
                 models_to_try = [PRIMARY_MODEL] + FALLBACK_MODELS
                 
                 for model_name in models_to_try:
                     try:
-                        generation_config = types.GenerateContentConfig(
-                            temperature=0.7,
-                            response_mime_type="application/json",
+                        model = client_ai.GenerativeModel(
+                            model_name=model_name,
+                            generation_config={
+                                "temperature": 0.7,
+                                "response_mime_type": "application/json"
+                            },
                             system_instruction=system_profile
                         )
                         
-                        response = await client_ai.aio.models.generate_content(
-                            model=model_name,
-                            contents=user_prompt,
-                            config=generation_config
-                        )
+                        response = await model.generate_content_async(user_prompt)
                         
                         response_text = response.text.strip()
                         

@@ -18,8 +18,21 @@ class GroqService:
         self.client = None
         if settings.groq_api_key:
             try:
-                self.client = Groq(api_key=settings.groq_api_key)
+                # Initialize Groq client without proxies parameter
+                self.client = Groq(
+                    api_key=settings.groq_api_key,
+                    timeout=30.0
+                )
                 logger.info("Groq client initialized successfully")
+            except TypeError as e:
+                # Handle version compatibility issues
+                logger.warning(f"Groq client initialization with timeout failed, trying basic init: {e}")
+                try:
+                    self.client = Groq(api_key=settings.groq_api_key)
+                    logger.info("Groq client initialized successfully (basic)")
+                except Exception as e2:
+                    logger.error(f"Failed to initialize Groq client: {e2}")
+                    self.client = None
             except Exception as e:
                 logger.error(f"Failed to initialize Groq client: {e}")
                 self.client = None
