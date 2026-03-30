@@ -6,7 +6,10 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, ArrowLeft } from "lucide-react";
+import { useState } from "react";
+import PaymentGatewaySelector from "./PaymentGatewaySelector";
+import axios from "axios";
 
 const plans = [
     {
@@ -32,7 +35,9 @@ const plans = [
             "Full marketing + data analysis",
             "Business plans",
             "Competitor research",
-            "30 analyses/month"
+            "30 analyses/month",
+            "Live market data",
+            "PDF exports"
         ],
         color: "from-blue-400 to-indigo-500",
         buttonColor: "bg-blue-600 hover:bg-blue-700",
@@ -48,7 +53,10 @@ const plans = [
             "Revenue forecasting",
             "Automation planning",
             "Export reports (PDF/Excel)",
-            "100 analyses/month"
+            "100 analyses/month",
+            "Pitch deck generator",
+            "Content calendar",
+            "Email sequences"
         ],
         color: "from-purple-400 to-pink-500",
         buttonColor: "bg-purple-600 hover:bg-purple-700",
@@ -63,7 +71,9 @@ const plans = [
             "API access",
             "Team accounts",
             "Custom AI tuning",
-            "White-label reports"
+            "White-label reports",
+            "Blockchain verification",
+            "24/7 support"
         ],
         color: "from-slate-400 to-slate-500",
         buttonColor: "bg-slate-600 hover:bg-slate-700",
@@ -72,57 +82,136 @@ const plans = [
 ];
 
 export function PricingModal({ isOpen, onClose }) {
+    const [selectedPlan, setSelectedPlan] = useState(null);
+    const [showPaymentGateways, setShowPaymentGateways] = useState(false);
+    const [loading, setLoading] = useState(false);
+
+    const handlePlanSelect = (plan) => {
+        if (plan.id === 'enterprise') {
+            // Handle enterprise contact
+            window.open('mailto:sales@astramark.ai?subject=Enterprise Plan Inquiry', '_blank');
+            return;
+        }
+        
+        setSelectedPlan(plan);
+        setShowPaymentGateways(true);
+    };
+
+    const handlePaymentInitiate = async (gateway, plan) => {
+        setLoading(true);
+        try {
+            const response = await axios.post('/api/payments/checkout', {
+                plan_id: plan.id,
+                gateway: gateway,
+                success_url: `${window.location.origin}/payment/success`,
+                cancel_url: `${window.location.origin}/payment/cancel`
+            });
+
+            // Redirect to payment gateway
+            if (gateway === 'stripe') {
+                window.location.href = response.data.checkout_url;
+            } else if (gateway === 'razorpay') {
+                window.location.href = response.data.payment_url;
+            }
+        } catch (error) {
+            console.error('Payment initiation failed:', error);
+            alert('Payment initiation failed. Please try again.');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBack = () => {
+        setShowPaymentGateways(false);
+        setSelectedPlan(null);
+    };
+
     return (
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="max-w-4xl bg-slate-950 border-slate-800 text-white">
                 <DialogHeader>
-                    <DialogTitle className="text-3xl font-bold text-center mb-2">
-                        Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Growth Plan</span>
-                    </DialogTitle>
-                    <DialogDescription className="text-center text-slate-400 text-lg">
-                        Unlock the full power of AI marketing intelligence
-                    </DialogDescription>
+                    <div className="flex items-center gap-2">
+                        {showPaymentGateways && (
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={handleBack}
+                                className="text-slate-400 hover:text-white"
+                            >
+                                <ArrowLeft className="h-4 w-4" />
+                            </Button>
+                        )}
+                        <div className="flex-1">
+                            <DialogTitle className="text-3xl font-bold text-center mb-2">
+                                {showPaymentGateways ? (
+                                    <>Complete Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Subscription</span></>
+                                ) : (
+                                    <>Choose Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">Growth Plan</span></>
+                                )}
+                            </DialogTitle>
+                            <DialogDescription className="text-center text-slate-400 text-lg">
+                                {showPaymentGateways ? (
+                                    `Selected: ${selectedPlan?.name} Plan`
+                                ) : (
+                                    "Unlock the full power of AI marketing intelligence"
+                                )}
+                            </DialogDescription>
+                        </div>
+                    </div>
                 </DialogHeader>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                    {plans.map((plan) => (
-                        <div
-                            key={plan.id}
-                            className={`relative rounded-xl border ${plan.popular ? 'border-purple-500 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40'} p-6 flex flex-col`}
-                        >
-                            {plan.popular && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
-                                    <Sparkles className="w-3 h-3" /> BEST VALUE
-                                </div>
-                            )}
+                {showPaymentGateways ? (
+                    <div className="mt-6">
+                        <PaymentGatewaySelector
+                            selectedPlan={selectedPlan}
+                            onPaymentInitiate={handlePaymentInitiate}
+                        />
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
+                        {plans.map((plan) => (
+                            <div
+                                key={plan.id}
+                                className={`relative rounded-xl border ${plan.popular ? 'border-purple-500 bg-slate-900/80' : 'border-slate-800 bg-slate-900/40'} p-6 flex flex-col`}
+                            >
+                                {plan.popular && (
+                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full flex items-center gap-1">
+                                        <Sparkles className="w-3 h-3" /> BEST VALUE
+                                    </div>
+                                )}
 
-                            <div className="mb-4">
-                                <h3 className={`text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${plan.color}`}>
-                                    {plan.name}
-                                </h3>
-                                <div className="flex items-baseline gap-1 mt-2">
-                                    <span className="text-3xl font-bold text-white">
-                                        {typeof plan.price === 'number' ? `$${plan.price}` : plan.price}
-                                    </span>
-                                    {plan.period && <span className="text-slate-400">/{plan.period}</span>}
+                                <div className="mb-4">
+                                    <h3 className={`text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r ${plan.color}`}>
+                                        {plan.name}
+                                    </h3>
+                                    <div className="flex items-baseline gap-1 mt-2">
+                                        <span className="text-3xl font-bold text-white">
+                                            {typeof plan.price === 'number' ? `$${plan.price}` : plan.price}
+                                        </span>
+                                        {plan.period && <span className="text-slate-400">/{plan.period}</span>}
+                                    </div>
                                 </div>
+
+                                <ul className="space-y-3 mb-6 flex-1">
+                                    {plan.features.map((feature, i) => (
+                                        <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
+                                            <Check className={`w-4 h-4 mt-0.5 shrink-0 text-white`} />
+                                            {feature}
+                                        </li>
+                                    ))}
+                                </ul>
+
+                                <Button 
+                                    className={`w-full ${plan.buttonColor} text-white font-semibold`}
+                                    onClick={() => handlePlanSelect(plan)}
+                                    disabled={loading}
+                                >
+                                    {plan.id === 'enterprise' ? 'Contact Sales' : 'Get Started'}
+                                </Button>
                             </div>
-
-                            <ul className="space-y-3 mb-6 flex-1">
-                                {plan.features.map((feature, i) => (
-                                    <li key={i} className="flex items-start gap-2 text-sm text-slate-300">
-                                        <Check className={`w-4 h-4 mt-0.5 shrink-0 text-white`} />
-                                        {feature}
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Button className={`w-full ${plan.buttonColor} text-white font-semibold`}>
-                                {plan.id === 'enterprise' ? 'Contact Sales' : 'Get Started'}
-                            </Button>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                )}
             </DialogContent>
         </Dialog>
     );

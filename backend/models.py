@@ -90,7 +90,10 @@ class CompetitorInsight(BaseModel):
     domain: str
     description: str
     position: int
-    estimated_traffic: str
+    url: Optional[str] = None
+    source: Optional[str] = None
+    confidence: Optional[float] = None
+    estimated_traffic: Optional[str] = None
     ad_spend_monthly: Optional[str] = None
     active_campaigns: Optional[int] = None
     top_keywords: Optional[List[str]] = None

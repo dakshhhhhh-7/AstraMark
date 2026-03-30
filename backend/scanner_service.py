@@ -13,8 +13,8 @@ from apscheduler.triggers.interval import IntervalTrigger
 logger = logging.getLogger(__name__)
 
 class BackgroundScanner:
-    def __init__(self, serp_service, db):
-        self.serp_service = serp_service
+    def __init__(self, market_service, db):
+        self.market_service = market_service  # Can be serp_service or free_market_service
         self.db = db
         self.scheduler = AsyncIOScheduler()
         self.enabled = os.environ.get('ENABLE_BACKGROUND_SCANNER', 'true').lower() == 'true'
@@ -118,8 +118,8 @@ class BackgroundScanner:
                         business_type = business.get('business_type', '')
                         target_market = business.get('target_market', '')
                         
-                        # Fetch competitor data
-                        competitor_data = await self.serp_service.search_competitors(
+                        # Fetch competitor data using free market service
+                        competitor_data = await self.market_service.search_competitors(
                             business_type, 
                             target_market
                         )
@@ -145,29 +145,33 @@ class BackgroundScanner:
         """Generate market signals for a specific business/market combination"""
         signals = []
         
-        # Get market trends
-        trends = await self.serp_service.get_market_trends(business_type)
+        # Get market trends using REAL market service with live data
+        trends = await self.market_service.get_market_trends(business_type)
         
-        # Analyze CPC trends
-        cpc_trend = trends.get('google_ads_cpc_trend', '')
-        if '+' in cpc_trend:
-            signals.append({
-                'type': 'Market',
-                'severity': 'warning',
-                'message': f'Google Ads CPC increased {cpc_trend} for {business_type} - consider adjusting budget'
-            })
+        # Analyze market trends from REAL live data
+        news_sentiment = trends.get('news_sentiment', {})
+        overall_sentiment = news_sentiment.get('overall_sentiment', 'neutral')
         
-        # Analyze CPM trends
-        cpm_trend = trends.get('meta_ads_cpm_trend', '')
-        if '-' in cpm_trend:
+        if overall_sentiment == 'positive':
             signals.append({
                 'type': 'Market',
                 'severity': 'info',
-                'message': f'Meta Ads CPM decreased {cpm_trend} - good opportunity for paid social campaigns'
+                'message': f'Positive news sentiment detected for {business_type} - favorable market conditions'
             })
         
-        # Get competitor data
-        competitor_data = await self.serp_service.search_competitors(business_type, target_market)
+        # Analyze social media engagement
+        social_data = trends.get('social_discussions', {})
+        engagement_level = social_data.get('engagement_level', 'low')
+        
+        if engagement_level == 'high':
+            signals.append({
+                'type': 'Consumer',
+                'severity': 'info',
+                'message': f'High social media engagement around {business_type} - increased consumer interest'
+            })
+        
+        # Get competitor data using REAL market service
+        competitor_data = await self.market_service.search_competitors(business_type, target_market)
         competitors = competitor_data.get('competitors', [])
         
         # Check for new competitors or changes
@@ -179,13 +183,13 @@ class BackgroundScanner:
                 'message': f'Top competitor "{top_competitor.get("name", "Unknown")}" detected in {target_market}'
             })
         
-        # Add rising keyword signals
-        rising_keywords = trends.get('top_rising_keywords', [])
-        if rising_keywords:
+        # Add technology trend signals from GitHub
+        tech_trends = trends.get('technology_trends', [])
+        if tech_trends:
             signals.append({
-                'type': 'Consumer',
+                'type': 'Technology',
                 'severity': 'info',
-                'message': f'Rising search interest: {", ".join(rising_keywords[:3])}'
+                'message': f'Trending technologies: {", ".join(tech_trends[:3])}'
             })
         
         return signals

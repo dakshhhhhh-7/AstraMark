@@ -4,7 +4,7 @@ aiosignal
 annotated-types
 anyio
 attrs
-bcrypt
+bcrypt==4.0.1
 black
 boto3
 botocore
@@ -31,6 +31,7 @@ google-auth
 google-auth-httplib2
 google-genai
 google-generativeai
+groq
 googleapis-common-protos
 grpcio
 grpcio-status
@@ -78,6 +79,7 @@ pyasn1_modules
 pycodestyle
 pycparser
 pydantic
+pydantic-settings
 pydantic_core
 pyflakes
 Pygments
@@ -128,3 +130,7 @@ google-search-results
 weasyprint
 reportlab
 apscheduler
+stripe
+razorpay
+redis
+slowapi

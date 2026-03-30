@@ -3,6 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
     FileText,
     Download,
     Calendar,
@@ -18,6 +25,7 @@ import { toast } from 'sonner';
 export function ContentActionsPanel({ analysisId, isPremium }) {
     const [loading, setLoading] = useState({});
     const [generated, setGenerated] = useState({});
+    const [fullViewModal, setFullViewModal] = useState(null); // 'pitchDeck' | 'calendar' | 'email' | null
 
     const handleExportPDF = async () => {
         try {
@@ -194,6 +202,11 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
 
                         // Override action if locked
                         const effectiveAction = isLocked ? () => handleLockedAction(item) : item.action;
+                        // When already generated, "View Generated" opens full-content modal (not re-run)
+                        const isViewGenerated = isGenerated && item.id !== 'pdf';
+                        const buttonClick = isViewGenerated
+                            ? () => setFullViewModal(item.id)
+                            : effectiveAction;
 
                         return (
                             <div
@@ -220,7 +233,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
                                         <p className="text-slate-400 text-xs mb-3">{item.description}</p>
                                         <Button
                                             size="sm"
-                                            onClick={effectiveAction}
+                                            onClick={buttonClick}
                                             disabled={isLoading}
                                             className={`w-full ${isLocked
                                                 ? 'bg-slate-700/50 hover:bg-slate-700 border border-purple-500/30 text-purple-200'
@@ -313,6 +326,119 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
                         </div>
                     </div>
                 )}
+
+                {/* Full-content modals for Pitch Deck, Content Calendar, Email Sequence */}
+                <Dialog open={fullViewModal === 'pitchDeck'} onOpenChange={(open) => !open && setFullViewModal(null)}>
+                    <DialogContent className="max-w-2xl max-h-[85vh] bg-slate-900 border-slate-700 text-white">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-purple-300">
+                                <Presentation className="w-5 h-5" />
+                                Full Pitch Deck ({generated.pitchDeck?.total_slides || 0} slides)
+                            </DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-[60vh] pr-4">
+                            <div className="space-y-6">
+                                {generated.pitchDeck?.pitch_deck?.slides?.map((slide, idx) => (
+                                    <div key={idx} className="p-4 rounded-lg bg-slate-800/80 border border-slate-700">
+                                        <h5 className="text-purple-300 font-semibold mb-2">
+                                            Slide {slide.slide_number}: {slide.title}
+                                        </h5>
+                                        {Array.isArray(slide.content) ? (
+                                            <ul className="list-disc list-inside text-slate-300 text-sm space-y-1 mb-2">
+                                                {slide.content.map((bullet, i) => (
+                                                    <li key={i}>{bullet}</li>
+                                                ))}
+                                            </ul>
+                                        ) : slide.content && <p className="text-slate-300 text-sm mb-2">{slide.content}</p>}
+                                        {slide.speaker_notes && (
+                                            <p className="text-xs text-slate-500 border-t border-slate-700 pt-2 mt-2">
+                                                Speaker notes: {slide.speaker_notes}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={fullViewModal === 'calendar'} onOpenChange={(open) => !open && setFullViewModal(null)}>
+                    <DialogContent className="max-w-2xl max-h-[85vh] bg-slate-900 border-slate-700 text-white">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-green-300">
+                                <Calendar className="w-5 h-5" />
+                                Full Content Calendar ({generated.calendar?.total_posts ?? 0} posts over {generated.calendar?.duration_weeks ?? 4} weeks)
+                            </DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-[60vh] pr-4">
+                            <div className="space-y-4">
+                                {!(generated.calendar?.content_calendar?.weeks?.length) && (
+                                    <p className="text-slate-400 text-sm">Generate the content to see the full calendar here.</p>
+                                )}
+                                {(generated.calendar?.content_calendar?.weeks || []).map((week, wIdx) => (
+                                    <div key={wIdx} className="rounded-lg bg-slate-800/80 border border-slate-700 overflow-hidden">
+                                        <h5 className="text-green-300 font-semibold p-3 border-b border-slate-700">Week {week.week_number}</h5>
+                                        <div className="divide-y divide-slate-700">
+                                            {(week.days || []).map((dayObj, dIdx) => (
+                                                <div key={dIdx} className="p-3">
+                                                    <div className="text-slate-400 text-xs mb-2">{dayObj.day} {dayObj.date}</div>
+                                                    {(dayObj.posts || []).map((post, pIdx) => (
+                                                        <div key={pIdx} className="text-sm text-slate-300 bg-slate-800/50 rounded p-2 mb-2">
+                                                            <span className="text-green-400 font-medium">{post.channel}</span>
+                                                            {post.time && <span className="text-slate-500 ml-2">{post.time}</span>}
+                                                            {post.content_type && <span className="text-slate-500 ml-2">({post.content_type})</span>}
+                                                            {post.topic && <p className="mt-1 font-medium">{post.topic}</p>}
+                                                            {post.caption && <p className="text-slate-400 text-xs mt-1">{post.caption}</p>}
+                                                            {post.hashtags?.length > 0 && (
+                                                                <p className="text-xs text-purple-400 mt-1">{post.hashtags.join(' ')}</p>
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </DialogContent>
+                </Dialog>
+
+                <Dialog open={fullViewModal === 'email'} onOpenChange={(open) => !open && setFullViewModal(null)}>
+                    <DialogContent className="max-w-2xl max-h-[85vh] bg-slate-900 border-slate-700 text-white">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2 text-orange-300">
+                                <Mail className="w-5 h-5" />
+                                Full Email Sequence ({generated.email?.total_emails ?? 0} emails – {generated.email?.sequence_type ?? 'onboarding'})
+                            </DialogTitle>
+                        </DialogHeader>
+                        <ScrollArea className="h-[60vh] pr-4">
+                            <div className="space-y-6">
+                                {(generated.email?.email_sequence?.emails || []).map((email, idx) => (
+                                    <div key={idx} className="p-4 rounded-lg bg-slate-800/80 border border-slate-700">
+                                        <h5 className="text-orange-300 font-semibold mb-1">
+                                            Email {email.email_number}: {email.subject_line}
+                                        </h5>
+                                        {email.send_delay_days != null && (
+                                            <p className="text-xs text-slate-500 mb-2">Send after {email.send_delay_days} day(s)</p>
+                                        )}
+                                        {email.preview_text && (
+                                            <p className="text-slate-400 text-sm mb-2 italic">{email.preview_text}</p>
+                                        )}
+                                        <div className="text-slate-300 text-sm whitespace-pre-wrap mb-3">{email.body || '—'}</div>
+                                        {(email.cta || email.cta_link) && (
+                                            <p className="text-xs">
+                                                <span className="text-orange-400 font-medium">CTA:</span>{' '}
+                                                {email.cta || 'Link'}
+                                                {email.cta_link && <span className="text-slate-500 ml-2">→ {email.cta_link}</span>}
+                                            </p>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </ScrollArea>
+                    </DialogContent>
+                </Dialog>
             </CardContent>
         </Card>
     );
