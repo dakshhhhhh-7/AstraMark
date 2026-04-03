@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\google\generativeai\types\safety_types.py
+# hypothesis_version: 6.151.10
+
+['BlockedReason', 'ContentFilterDict', 'HarmBlockThreshold', 'HarmCategory', 'HarmProbability', 'SafetyFeedbackDict', 'SafetyRatingDict', 'SafetySettingDict', 'block_low_and_above', 'block_none', 'block_only_high', 'category', 'danger', 'dangerous', 'harassment', 'harm_category_sexual', 'hate', 'hate_speech', 'high', 'low', 'med', 'medium', 'probability', 'rating', 'reason', 'safety_ratings', 'setting', 'sex', 'sexual', 'sexually_explicit', 'threshold', 'unspecified']

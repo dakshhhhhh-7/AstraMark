@@ -6,6 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { Activity, AlertTriangle, Info, TrendingUp, Clock, PauseCircle, PlayCircle, Check, X, Sliders } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { safeRender } from '@/utils/safeRender';
 
 export function LiveAgentPanel({ analysis }) {
   const [isPaused, setIsPaused] = useState(false);
@@ -131,10 +132,10 @@ export function LiveAgentPanel({ analysis }) {
                   <div className="flex-1">
                     <div className="flex justify-between items-start">
                       <div className="text-white text-sm font-medium mb-1">
-                        {signal.message}
+                        {safeRender(signal.message, 'Market signal detected')}
                       </div>
                       <Badge variant="outline" className="text-[10px] border-slate-600 text-slate-400">
-                        {signal.detected_at}
+                        {safeRender(signal.detected_at, 'Recently')}
                       </Badge>
                     </div>
                     <p className="text-xs text-slate-300 mb-3">
@@ -175,11 +176,11 @@ export function LiveAgentPanel({ analysis }) {
               >
                 <div className="flex items-start justify-between mb-2">
                   <Badge variant="outline" className="text-green-400 border-green-400/30 text-xs">
-                    {update.update_type}
+                    {safeRender(update.update_type, 'Update')}
                   </Badge>
-                  <span className="text-xs text-green-400 font-semibold">{update.improvement_metric}</span>
+                  <span className="text-xs text-green-400 font-semibold">{safeRender(update.improvement_metric, '')}</span>
                 </div>
-                <p className="text-white text-sm">{update.learning_description}</p>
+                <p className="text-white text-sm">{safeRender(update.learning_description, 'AI optimization applied')}</p>
               </div>
             ))}
           </div>

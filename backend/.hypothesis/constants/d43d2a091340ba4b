@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\pyparsing\util.py
+# hypothesis_version: 6.151.10
+
+[128, '([a-z])([A-Z])', '?', '?:', 'C', '\\', '\\1_\\2', '\\^-[]', '\\^-][', '\\n', '\\t', '__func__', '__init__', 'configuration', 'self', '|']

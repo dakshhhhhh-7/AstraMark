@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\pydantic\config.py
+# hypothesis_version: 6.151.10
+
+['ConfigDict', 'JsonDict', 'JsonValue', '_TypeT', 'all', 'allow', 'always', 'base64', 'constants', 'float', 'forbid', 'hex', 'ignore', 'iso8601', 'keys', 'model', 'never', 'none', 'null', 'python-re', 'rust-regex', 'serialization', 'strings', 'subclass-instances', 'type_adapter', 'utf8', 'validation', 'with-config-on-model', 'with_config']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\urllib3\fields.py
+# hypothesis_version: 6.151.10
+
+['"\\\r\n', '%0A', '%0D', '%22', '; ', 'Content-Disposition', 'Content-Location', 'Content-Type', 'ascii', 'filename', 'form-data', 'name', 'utf-8']

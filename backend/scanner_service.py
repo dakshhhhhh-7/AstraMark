@@ -202,6 +202,12 @@ class BackgroundScanner:
                 query['business_type'] = business_type
             
             signals = await self.db.market_signals.find(query).sort("created_at", -1).limit(limit).to_list(length=limit)
+            
+            # Convert MongoDB ObjectId to string for JSON serialization
+            for signal in signals:
+                if '_id' in signal:
+                    signal['_id'] = str(signal['_id'])
+            
             return signals
         except Exception as e:
             logger.error(f"Failed to fetch signals: {e}")
@@ -213,6 +219,11 @@ class BackgroundScanner:
             snapshots = await self.db.competitor_snapshots.find(
                 {'business_id': business_id}
             ).sort("created_at", -1).limit(5).to_list(length=5)
+            
+            # Convert MongoDB ObjectId to string for JSON serialization
+            for snapshot in snapshots:
+                if '_id' in snapshot:
+                    snapshot['_id'] = str(snapshot['_id'])
             
             return snapshots
         except Exception as e:

@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { safeErrorMessage } from '@/utils/safeRender';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -23,8 +24,25 @@ export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    // Validate required fields
     if (!formData.business_type || !formData.target_market || !formData.monthly_budget || !formData.primary_goal) {
       toast.error('Please fill in all required fields');
+      return;
+    }
+
+    // Validate field lengths (match backend requirements)
+    if (formData.business_type.length < 2) {
+      toast.error('Business type must be at least 2 characters');
+      return;
+    }
+
+    if (formData.target_market.length < 2) {
+      toast.error('Target market must be at least 2 characters');
+      return;
+    }
+
+    if (formData.primary_goal.length < 10) {
+      toast.error('Primary goal must be at least 10 characters. Please provide more details.');
       return;
     }
 
@@ -35,7 +53,7 @@ export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading 
       onAnalysisComplete(response.data);
     } catch (error) {
       console.error('Analysis error:', error);
-      toast.error(error.response?.data?.detail || 'Analysis failed. Please try again.');
+      toast.error(safeErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +143,9 @@ export function BusinessInputForm({ onAnalysisComplete, isLoading, setIsLoading 
                 value={formData.primary_goal}
                 onChange={handleChange}
                 className="bg-slate-800 border-slate-700 text-white placeholder:text-slate-500"
+                minLength={10}
               />
+              <p className="text-xs text-slate-500">Minimum 10 characters. Be specific about what you want to achieve.</p>
             </div>
 
             <div className="space-y-2">

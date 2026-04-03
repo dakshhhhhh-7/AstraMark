@@ -21,6 +21,7 @@ import {
     Eye
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { safeErrorMessage } from '@/utils/safeRender';
 
 export function ContentActionsPanel({ analysisId, isPremium }) {
     const [loading, setLoading] = useState({});
@@ -48,7 +49,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             toast.success('PDF report downloaded successfully!');
             setGenerated(prev => ({ ...prev, pdf: true }));
         } catch (error) {
-            toast.error('Failed to export PDF: ' + error.message);
+            toast.error(safeErrorMessage(error));
         } finally {
             setLoading(prev => ({ ...prev, pdf: false }));
         }
@@ -70,7 +71,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             toast.success(`Pitch deck generated with ${data.total_slides} slides!`);
             setGenerated(prev => ({ ...prev, pitchDeck: data }));
         } catch (error) {
-            toast.error('Failed to generate pitch deck: ' + error.message);
+            toast.error(safeErrorMessage(error));
         } finally {
             setLoading(prev => ({ ...prev, pitchDeck: false }));
         }
@@ -92,7 +93,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             toast.success(`Content calendar generated with ${data.total_posts} posts!`);
             setGenerated(prev => ({ ...prev, calendar: data }));
         } catch (error) {
-            toast.error('Failed to generate content calendar: ' + error.message);
+            toast.error(safeErrorMessage(error));
         } finally {
             setLoading(prev => ({ ...prev, calendar: false }));
         }
@@ -114,7 +115,7 @@ export function ContentActionsPanel({ analysisId, isPremium }) {
             toast.success(`Email sequence generated with ${data.total_emails} emails!`);
             setGenerated(prev => ({ ...prev, email: data }));
         } catch (error) {
-            toast.error('Failed to generate email sequence: ' + error.message);
+            toast.error(safeErrorMessage(error));
         } finally {
             setLoading(prev => ({ ...prev, email: false }));
         }

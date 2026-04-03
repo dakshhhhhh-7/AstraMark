@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { safeErrorMessage } from '@/utils/safeRender';
 
 export function RegisterPage() {
     const [formData, setFormData] = useState({
@@ -49,8 +50,7 @@ export function RegisterPage() {
             navigate('/login');
         } catch (error) {
             console.error(error);
-            const detail = error.response?.data?.detail || 'Registration failed.';
-            toast.error(detail);
+            toast.error(safeErrorMessage(error));
         } finally {
             setIsLoading(false);
         }

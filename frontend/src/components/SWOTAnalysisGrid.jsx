@@ -1,12 +1,34 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { CheckCircle2, XCircle, TrendingUp, AlertTriangle } from "lucide-react";
 
+// Helper to safely convert to string
+const safeString = (value) => {
+    if (value === null || value === undefined) return '';
+    if (typeof value === 'string') return value;
+    if (typeof value === 'number') return String(value);
+    if (typeof value === 'object') return JSON.stringify(value);
+    return String(value);
+};
+
+// Helper to safely get array
+const safeArray = (value) => {
+    if (Array.isArray(value)) return value.map(safeString);
+    if (value === null || value === undefined) return [];
+    return [safeString(value)];
+};
+
 export function SWOTAnalysisGrid({ marketAnalysis }) {
-    // Fallback if strengths/weaknesses are missing (backwards compatibility)
-    const strengths = marketAnalysis.strengths || ["High Growth Potential", "First Mover Advantage"];
-    const weaknesses = marketAnalysis.weaknesses || ["Limited Brand Awareness", "Resource Constraints"];
-    const opportunities = marketAnalysis.opportunities || [];
-    const risks = marketAnalysis.risks || [];
+    // Safely extract data with fallbacks
+    const strengths = safeArray(marketAnalysis?.strengths).length > 0 
+        ? safeArray(marketAnalysis.strengths) 
+        : ["High Growth Potential", "First Mover Advantage"];
+    
+    const weaknesses = safeArray(marketAnalysis?.weaknesses).length > 0 
+        ? safeArray(marketAnalysis.weaknesses) 
+        : ["Limited Brand Awareness", "Resource Constraints"];
+    
+    const opportunities = safeArray(marketAnalysis?.opportunities);
+    const risks = safeArray(marketAnalysis?.risks);
 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -21,7 +43,7 @@ export function SWOTAnalysisGrid({ marketAnalysis }) {
                         {strengths.map((item, idx) => (
                             <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500/50 mt-1.5 flex-shrink-0" />
-                                {item}
+                                {safeString(item)}
                             </li>
                         ))}
                     </ul>
@@ -39,7 +61,7 @@ export function SWOTAnalysisGrid({ marketAnalysis }) {
                         {weaknesses.map((item, idx) => (
                             <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-red-500/50 mt-1.5 flex-shrink-0" />
-                                {item}
+                                {safeString(item)}
                             </li>
                         ))}
                     </ul>
@@ -57,7 +79,7 @@ export function SWOTAnalysisGrid({ marketAnalysis }) {
                         {opportunities.map((item, idx) => (
                             <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-blue-500/50 mt-1.5 flex-shrink-0" />
-                                {item}
+                                {safeString(item)}
                             </li>
                         ))}
                     </ul>
@@ -75,7 +97,7 @@ export function SWOTAnalysisGrid({ marketAnalysis }) {
                         {risks.map((item, idx) => (
                             <li key={idx} className="text-slate-300 text-sm flex items-start gap-2">
                                 <span className="w-1.5 h-1.5 rounded-full bg-yellow-500/50 mt-1.5 flex-shrink-0" />
-                                {item}
+                                {safeString(item)}
                             </li>
                         ))}
                     </ul>

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
+import { safeErrorMessage } from '@/utils/safeRender';
 
 export function LoginPage() {
     const [email, setEmail] = useState('');
@@ -29,7 +30,7 @@ export function LoginPage() {
             navigate('/');
         } catch (error) {
             console.error(error);
-            toast.error('Invalid credentials. Please try again.');
+            toast.error(safeErrorMessage(error));
         } finally {
             setIsLoading(false);
         }

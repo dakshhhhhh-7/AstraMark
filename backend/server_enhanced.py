@@ -45,6 +45,14 @@ from pdf_service import pdf_generator
 from content_service import ContentGenerationService
 from scanner_service import BackgroundScanner
 from groq_service import groq_service
+from growth_engine import GrowthEngine
+from campaign_launcher import CampaignLauncher
+from autonomous_mode import AutonomousMarketingEngine
+from learning_engine import LearningEngine
+from predictive_revenue_system import PredictiveRevenueSystem
+from conversion_optimization_ai import ConversionOptimizationAI
+from lead_funnel_automator import LeadFunnelAutomator
+from competitor_hijacking_engine import CompetitorHijackingEngine
 
 # Import models
 from models import (
@@ -78,6 +86,14 @@ payment_service = None
 health_check = None
 usage_tracker = None
 background_scanner = BackgroundScanner(apify_market_service, None)
+growth_engine = None
+campaign_launcher = None
+autonomous_engine = None
+learning_engine = None
+predictive_revenue_system = None
+conversion_optimization_ai = None
+lead_funnel_automator = None
+competitor_hijacking_engine = None
 
 # Rate Limiter Configuration
 limiter = Limiter(key_func=get_remote_address)
@@ -117,7 +133,7 @@ async def get_content_service_dep():
 async def lifespan(app: FastAPI):
     # Startup
     logger.info("Starting AstraMark Enhanced Server...")
-    global client, db, client_ai, content_service, auth_service, payment_service, health_check, usage_tracker
+    global client, db, client_ai, content_service, auth_service, payment_service, health_check, usage_tracker, growth_engine, campaign_launcher, autonomous_engine, conversion_optimization_ai, lead_funnel_automator, competitor_hijacking_engine
     
     # 1. Database Connection
     try:
@@ -160,9 +176,24 @@ async def lifespan(app: FastAPI):
         health_check = HealthCheck(db)
         usage_tracker = UsageTracker(db)
         
+        # Initialize Growth OS services
+        growth_engine = GrowthEngine(db, client_ai)
+        campaign_launcher = CampaignLauncher(db, growth_engine)
+        learning_engine = LearningEngine(db, campaign_launcher)
+        predictive_revenue_system = PredictiveRevenueSystem(db, growth_engine)
+        autonomous_engine = AutonomousMarketingEngine(db, growth_engine, campaign_launcher)
+        conversion_optimization_ai = ConversionOptimizationAI(db, client_ai)
+        lead_funnel_automator = LeadFunnelAutomator(db, client_ai)
+        competitor_hijacking_engine = CompetitorHijackingEngine(db, growth_engine)
+        
         # Update Scanner with DB
         background_scanner.db = db
         background_scanner.start()
+        
+        # Start autonomous engine
+        autonomous_engine.start()
+        
+        logger.info("Growth Operating System initialized successfully")
     except Exception as e:
         logger.critical(f"MongoDB connection failed: {e}")
         raise e
@@ -194,6 +225,8 @@ async def lifespan(app: FastAPI):
     # Shutdown
     logger.info("Shutting down...")
     background_scanner.stop()
+    if autonomous_engine:
+        autonomous_engine.stop()
     if client:
         client.close()
     logger.info("Server shutdown complete")
@@ -202,6 +235,35 @@ app = FastAPI(title="AstraMark AI Marketing API - Enhanced", lifespan=lifespan)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 add_exception_handlers(app)
+
+# Custom validation error handler for better error messages
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Custom handler for validation errors to return user-friendly messages"""
+    errors = []
+    for error in exc.errors():
+        field = error['loc'][-1] if error['loc'] else 'field'
+        msg = error['msg']
+        
+        # Customize messages for better UX
+        if 'min_length' in msg.lower():
+            if field == 'primary_goal':
+                msg = 'Primary goal must be at least 10 characters. Please provide more details about your goal.'
+            else:
+                msg = f'{field} is too short'
+        elif 'required' in msg.lower():
+            msg = f'{field} is required'
+        
+        errors.append(f"{field}: {msg}")
+    
+    return JSONResponse(
+        status_code=422,
+        content={"detail": " | ".join(errors)}
+    )
+
 api_router = APIRouter(prefix="/api")
 
 # ==================== AUTH MODELS & HELPERS ====================
@@ -585,9 +647,49 @@ async def generate_market_analysis_with_live_data(business: BusinessInput) -> Di
         string_fields = ['market_size', 'growth_rate', 'entry_barriers']
         for field in string_fields:
             if isinstance(market_analysis.get(field), list):
-                market_analysis[field] = ', '.join(market_analysis[field])
+                market_analysis[field] = ', '.join(str(x) for x in market_analysis[field])
             elif not isinstance(market_analysis.get(field), str):
                 market_analysis[field] = str(market_analysis.get(field, 'Not specified'))
+        
+        # Ensure array fields are arrays
+        array_fields = ['opportunities', 'risks', 'strengths', 'weaknesses']
+        for field in array_fields:
+            if not isinstance(market_analysis.get(field), list):
+                market_analysis[field] = [str(market_analysis.get(field, ''))] if market_analysis.get(field) else []
+    
+    # Fix user personas
+    if analysis_data and 'user_personas' in analysis_data:
+        for persona in analysis_data['user_personas']:
+            # Ensure array fields are arrays
+            for field in ['pain_points', 'buying_triggers', 'objections']:
+                if not isinstance(persona.get(field), list):
+                    persona[field] = [str(persona.get(field, ''))] if persona.get(field) else []
+    
+    # Fix strategies
+    if analysis_data and 'strategies' in analysis_data:
+        for strategy in analysis_data['strategies']:
+            # Ensure content_ideas is an array of strings
+            if not isinstance(strategy.get('content_ideas'), list):
+                strategy['content_ideas'] = [str(strategy.get('content_ideas', ''))] if strategy.get('content_ideas') else []
+            else:
+                # Ensure all items in content_ideas are strings
+                strategy['content_ideas'] = [
+                    str(item) if not isinstance(item, str) else item 
+                    for item in strategy.get('content_ideas', [])
+                ]
+            
+            # Ensure kpi_benchmarks is a dict with string/number values
+            if not isinstance(strategy.get('kpi_benchmarks'), dict):
+                strategy['kpi_benchmarks'] = {}
+            else:
+                # Ensure all values in kpi_benchmarks are strings or numbers
+                sanitized_kpis = {}
+                for key, value in strategy.get('kpi_benchmarks', {}).items():
+                    if isinstance(value, (str, int, float)):
+                        sanitized_kpis[key] = value
+                    else:
+                        sanitized_kpis[key] = str(value)
+                strategy['kpi_benchmarks'] = sanitized_kpis
     
     # Add metadata about which service was used
     analysis_data['ai_service_used'] = ai_service_used
@@ -1138,6 +1240,798 @@ async def handle_payment_webhook(
 async def get_payment_config(gateway: str, payment_svc = Depends(get_payment_service_dep)):
     """Get public payment gateway configuration"""
     return payment_svc.get_gateway_config(gateway)
+
+# ==================== GROWTH OS ENDPOINTS ====================
+@api_router.get("/growth/daily-actions/{business_id}")
+async def get_daily_actions(business_id: str):
+    """Get AI-generated daily actionable recommendations"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        actions = await growth_engine.generate_daily_actions(business_id)
+        return {"actions": actions, "count": len(actions)}
+    except Exception as e:
+        logger.error(f"Daily actions error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/predict-revenue")
+async def predict_revenue(request: Request):
+    """Predict revenue based on budget and channel mix"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        budget = data.get('budget')
+        channels = data.get('channels', [])
+        
+        prediction = await growth_engine.predict_revenue(business_id, budget, channels)
+        return prediction
+    except Exception as e:
+        logger.error(f"Revenue prediction error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/launch-campaign")
+async def launch_campaign(request: Request):
+    """One-click campaign launch"""
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        goal = data.get('goal')
+        channels = data.get('channels', [])
+        budget = data.get('budget', 0)
+        
+        result = await campaign_launcher.launch_campaign(business_id, goal, channels, budget)
+        return result
+    except Exception as e:
+        logger.error(f"Campaign launch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/growth/campaigns/{campaign_id}")
+async def get_campaign_status(campaign_id: str):
+    """Get campaign status and performance"""
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        campaign = await campaign_launcher.get_campaign_status(campaign_id)
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Campaign not found")
+        return campaign
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/campaigns/{campaign_id}/pause")
+async def pause_campaign(campaign_id: str):
+    """Pause an active campaign"""
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        success = await campaign_launcher.pause_campaign(campaign_id)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Pause campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/campaigns/{campaign_id}/resume")
+async def resume_campaign(campaign_id: str):
+    """Resume a paused campaign"""
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        success = await campaign_launcher.resume_campaign(campaign_id)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Resume campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/campaigns/{campaign_id}/performance")
+async def update_campaign_performance(campaign_id: str, request: Request):
+    """Update campaign performance metrics"""
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        data = await request.json()
+        performance_data = data.get('performance', {})
+        
+        success = await campaign_launcher.update_campaign_performance(campaign_id, performance_data)
+        return {"success": success}
+    except Exception as e:
+        logger.error(f"Update campaign performance error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/analyze-competitors")
+async def analyze_competitors(request: Request):
+    """Analyze competitors and get hijack strategies"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        competitors = data.get('competitors', [])
+        
+        analysis = await growth_engine.analyze_competitors(business_id, competitors)
+        return analysis
+    except Exception as e:
+        logger.error(f"Competitor analysis error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/viral-content")
+async def generate_viral_content(request: Request):
+    """Generate viral-optimized content"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        topic = data.get('topic')
+        platform = data.get('platform', 'Instagram')
+        
+        content = await growth_engine.generate_viral_content(business_id, topic, platform)
+        return {"content": content, "count": len(content)}
+    except Exception as e:
+        logger.error(f"Viral content generation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/optimize-conversion")
+async def optimize_conversion(request: Request):
+    """Analyze and optimize conversion rates"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        page_data = await request.json()
+        
+        optimization = await growth_engine.optimize_conversion(page_data)
+        return optimization
+    except Exception as e:
+        logger.error(f"Conversion optimization error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/create-funnel")
+async def create_lead_funnel(request: Request):
+    """Create automated lead funnel"""
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        goal = data.get('goal')
+        
+        funnel = await growth_engine.create_lead_funnel(business_id, goal)
+        return funnel
+    except Exception as e:
+        logger.error(f"Funnel creation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/autonomous/enable")
+async def enable_autonomous_mode(request: Request):
+    """Enable autonomous marketing mode"""
+    try:
+        if not autonomous_engine:
+            raise HTTPException(status_code=503, detail="Autonomous engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        budget_limit = data.get('budget_limit', 10000)
+        channels = data.get('channels', ['SEO', 'Social', 'Email'])
+        
+        config = {
+            'budget_limit': budget_limit,
+            'channels': channels
+        }
+        success = await autonomous_engine.enable_autonomous_mode(business_id, config)
+        return {"success": success, "message": "Autonomous mode enabled"}
+    except Exception as e:
+        logger.error(f"Enable autonomous mode error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/autonomous/disable")
+async def disable_autonomous_mode(request: Request):
+    """Disable autonomous marketing mode"""
+    try:
+        if not autonomous_engine:
+            raise HTTPException(status_code=503, detail="Autonomous engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        
+        success = await autonomous_engine.disable_autonomous_mode(business_id)
+        return {"success": success, "message": "Autonomous mode disabled"}
+    except Exception as e:
+        logger.error(f"Disable autonomous mode error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/growth/autonomous/status/{business_id}")
+async def get_autonomous_status(business_id: str):
+    """Get autonomous mode status for a business"""
+    try:
+        config = await db.autonomous_configs.find_one({'business_id': business_id})
+        if not config:
+            return {"enabled": False}
+        
+        if '_id' in config:
+            config['_id'] = str(config['_id'])
+        
+        return config
+    except Exception as e:
+        logger.error(f"Get autonomous status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/growth/forecast/{business_id}")
+async def forecast_revenue_growth(business_id: str, months: int = 6):
+    """
+    Forecast monthly revenue growth for a business
+    
+    **Validates: Requirements 5.5, 5.6, 5.7**
+    """
+    try:
+        if not predictive_revenue_system:
+            raise HTTPException(status_code=503, detail="Predictive revenue system not available")
+        
+        if months < 1 or months > 24:
+            raise HTTPException(status_code=400, detail="Months must be between 1 and 24")
+        
+        forecast = await predictive_revenue_system.forecast_growth(business_id, months)
+        return {"business_id": business_id, "months": months, "forecast": forecast}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Revenue forecast error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/timeline")
+async def calculate_revenue_timeline(request: Request):
+    """
+    Calculate timeline to reach revenue goal
+    
+    **Validates: Requirements 5.8**
+    """
+    try:
+        if not predictive_revenue_system:
+            raise HTTPException(status_code=503, detail="Predictive revenue system not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        target_revenue = data.get('target_revenue')
+        
+        if not business_id or not target_revenue:
+            raise HTTPException(status_code=400, detail="business_id and target_revenue are required")
+        
+        if target_revenue <= 0:
+            raise HTTPException(status_code=400, detail="target_revenue must be positive")
+        
+        timeline = await predictive_revenue_system.calculate_timeline(business_id, target_revenue)
+        return timeline
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Timeline calculation error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/growth/revenue-projection")
+async def project_campaign_revenue(request: Request):
+    """
+    Project revenue for a specific campaign configuration
+    
+    **Validates: Requirements 5.2, 5.3**
+    """
+    try:
+        if not predictive_revenue_system:
+            raise HTTPException(status_code=503, detail="Predictive revenue system not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        campaign_config = data.get('campaign_config', {})
+        
+        if not business_id:
+            raise HTTPException(status_code=400, detail="business_id is required")
+        
+        projection = await predictive_revenue_system.project_revenue(business_id, campaign_config)
+        return projection
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Revenue projection error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ==================== ADDITIONAL GROWTH OS ENDPOINTS ====================
+
+@api_router.post("/campaigns/launch")
+async def launch_campaign_v2(request: Request):
+    """
+    Launch a complete marketing campaign with one click
+    
+    **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7**
+    """
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        goal = data.get('goal')
+        channels = data.get('channels', [])
+        budget = data.get('budget', 0)
+        
+        if not business_id or not goal:
+            raise HTTPException(status_code=400, detail="business_id and goal are required")
+        
+        if not channels:
+            raise HTTPException(status_code=400, detail="At least one channel is required")
+        
+        result = await campaign_launcher.launch_campaign(business_id, goal, channels, budget)
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Campaign launch error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/campaigns/{campaign_id}")
+async def get_campaign_details(campaign_id: str):
+    """
+    Get campaign status and performance details
+    
+    **Validates: Requirements 2.8**
+    """
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        campaign = await campaign_launcher.get_campaign_status(campaign_id)
+        
+        if not campaign:
+            raise HTTPException(status_code=404, detail="Campaign not found")
+        
+        return campaign
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/campaigns/{campaign_id}/pause")
+async def pause_campaign_v2(campaign_id: str):
+    """
+    Pause an active campaign
+    
+    **Validates: Requirements 2.9**
+    """
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        success = await campaign_launcher.pause_campaign(campaign_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Campaign not found or not active")
+        
+        return {"success": True, "message": f"Campaign {campaign_id} paused"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Pause campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/campaigns/{campaign_id}/resume")
+async def resume_campaign_v2(campaign_id: str):
+    """
+    Resume a paused campaign
+    
+    **Validates: Requirements 2.9**
+    """
+    try:
+        if not campaign_launcher:
+            raise HTTPException(status_code=503, detail="Campaign launcher not available")
+        
+        success = await campaign_launcher.resume_campaign(campaign_id)
+        
+        if not success:
+            raise HTTPException(status_code=404, detail="Campaign not found or not paused")
+        
+        return {"success": True, "message": f"Campaign {campaign_id} resumed"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Resume campaign error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/autonomous/enable")
+async def enable_autonomous_mode_v2(request: Request):
+    """
+    Enable autonomous marketing mode for a business
+    
+    **Validates: Requirements 10.1, 10.2, 10.8**
+    """
+    try:
+        if not autonomous_engine:
+            raise HTTPException(status_code=503, detail="Autonomous engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        config = data.get('config', {})
+        
+        if not business_id:
+            raise HTTPException(status_code=400, detail="business_id is required")
+        
+        # Validate config
+        if 'budget_limit' not in config:
+            raise HTTPException(status_code=400, detail="budget_limit is required in config")
+        
+        success = await autonomous_engine.enable_autonomous_mode(business_id, config)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to enable autonomous mode")
+        
+        return {"success": True, "message": "Autonomous mode enabled", "business_id": business_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Enable autonomous mode error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/autonomous/disable")
+async def disable_autonomous_mode_v2(request: Request):
+    """
+    Disable autonomous marketing mode for a business
+    
+    **Validates: Requirements 10.9**
+    """
+    try:
+        if not autonomous_engine:
+            raise HTTPException(status_code=503, detail="Autonomous engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        reason = data.get('reason', 'user_requested')
+        
+        if not business_id:
+            raise HTTPException(status_code=400, detail="business_id is required")
+        
+        success = await autonomous_engine.disable_autonomous_mode(business_id, reason)
+        
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to disable autonomous mode")
+        
+        return {"success": True, "message": "Autonomous mode disabled", "business_id": business_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Disable autonomous mode error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/autonomous/status/{business_id}")
+async def get_autonomous_status_v2(business_id: str):
+    """
+    Get autonomous mode status and recent actions
+    
+    **Validates: Requirements 10.7**
+    """
+    try:
+        if not autonomous_engine:
+            raise HTTPException(status_code=503, detail="Autonomous engine not available")
+        
+        status = await autonomous_engine.get_autonomous_status(business_id)
+        return status
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get autonomous status error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/competitors/add")
+async def add_competitor(request: Request):
+    """
+    Add a competitor to monitor
+    
+    **Validates: Requirements 6.1, 6.2, 6.9**
+    """
+    try:
+        if not competitor_hijacking_engine:
+            raise HTTPException(status_code=503, detail="Competitor hijacking engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        competitor_url = data.get('competitor_url')
+        
+        if not business_id or not competitor_url:
+            raise HTTPException(status_code=400, detail="business_id and competitor_url are required")
+        
+        competitor_id = await competitor_hijacking_engine.add_competitor(business_id, competitor_url)
+        
+        return {"success": True, "competitor_id": competitor_id, "message": "Competitor added for monitoring"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Add competitor error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/competitors/{business_id}")
+async def get_competitors(business_id: str):
+    """
+    Get all monitored competitors for a business
+    
+    **Validates: Requirements 6.9**
+    """
+    try:
+        if not competitor_hijacking_engine:
+            raise HTTPException(status_code=503, detail="Competitor hijacking engine not available")
+        
+        competitors = await competitor_hijacking_engine.monitor_competitors(business_id)
+        return {"competitors": competitors, "count": len(competitors)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get competitors error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/competitors/{competitor_id}/strategies")
+async def get_competitor_strategies(competitor_id: str):
+    """
+    Get counter-strategies to beat a competitor
+    
+    **Validates: Requirements 6.5, 6.8**
+    """
+    try:
+        if not competitor_hijacking_engine:
+            raise HTTPException(status_code=503, detail="Competitor hijacking engine not available")
+        
+        # Get competitor from database
+        competitor = await db.competitors.find_one({'id': competitor_id})
+        if not competitor:
+            raise HTTPException(status_code=404, detail="Competitor not found")
+        
+        business_id = competitor.get('business_id')
+        strategies = await competitor_hijacking_engine.suggest_counter_strategies(business_id, competitor_id)
+        
+        return {"competitor_id": competitor_id, "strategies": strategies, "count": len(strategies)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get competitor strategies error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/content/viral")
+async def generate_viral_content_v2(request: Request):
+    """
+    Generate viral-optimized content
+    
+    **Validates: Requirements 7.1, 7.2, 7.3, 7.4, 7.5, 7.6, 7.7**
+    """
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        topic = data.get('topic')
+        platform = data.get('platform', 'social')
+        
+        if not business_id or not topic:
+            raise HTTPException(status_code=400, detail="business_id and topic are required")
+        
+        content = await growth_engine.generate_viral_content(business_id, topic, platform)
+        
+        return {"content": content, "count": len(content)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Generate viral content error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/content/campaign-assets")
+async def generate_campaign_assets(request: Request):
+    """
+    Generate complete campaign assets for 1-click launch
+    
+    **Validates: Requirements 11.1, 11.2, 11.3, 11.4, 11.5, 11.6, 11.7, 11.8**
+    """
+    try:
+        if not growth_engine:
+            raise HTTPException(status_code=503, detail="Growth engine not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        goal = data.get('goal')
+        
+        if not business_id or not goal:
+            raise HTTPException(status_code=400, detail="business_id and goal are required")
+        
+        assets = await growth_engine.generate_campaign_assets(goal, business_id)
+        
+        if not assets:
+            raise HTTPException(status_code=500, detail="Failed to generate campaign assets")
+        
+        return assets
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Generate campaign assets error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/conversion/analyze")
+async def analyze_conversion(request: Request):
+    """
+    Analyze landing page and identify conversion bottlenecks
+    
+    **Validates: Requirements 8.1, 8.2, 8.7**
+    """
+    try:
+        if not conversion_optimization_ai:
+            raise HTTPException(status_code=503, detail="Conversion optimization AI not available")
+        
+        data = await request.json()
+        page_url = data.get('page_url')
+        business_id = data.get('business_id')
+        
+        if not page_url or not business_id:
+            raise HTTPException(status_code=400, detail="page_url and business_id are required")
+        
+        analysis = await conversion_optimization_ai.analyze_page(page_url, business_id)
+        
+        if not analysis:
+            raise HTTPException(status_code=500, detail="Failed to analyze page")
+        
+        return analysis
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Analyze conversion error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/conversion/ab-test")
+async def create_ab_test(request: Request):
+    """
+    Create A/B test with variations
+    
+    **Validates: Requirements 8.3, 8.4**
+    """
+    try:
+        if not conversion_optimization_ai:
+            raise HTTPException(status_code=503, detail="Conversion optimization AI not available")
+        
+        data = await request.json()
+        page_id = data.get('page_id')
+        variations = data.get('variations', [])
+        
+        if not page_id or not variations:
+            raise HTTPException(status_code=400, detail="page_id and variations are required")
+        
+        test_id = await conversion_optimization_ai.run_ab_test(page_id, variations)
+        
+        return {"success": True, "test_id": test_id, "message": "A/B test started"}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Create A/B test error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/funnels/create")
+async def create_funnel(request: Request):
+    """
+    Create automated lead funnel
+    
+    **Validates: Requirements 9.1, 9.2, 9.4, 9.9**
+    """
+    try:
+        if not lead_funnel_automator:
+            raise HTTPException(status_code=503, detail="Lead funnel automator not available")
+        
+        data = await request.json()
+        business_id = data.get('business_id')
+        goal = data.get('goal')
+        
+        if not business_id or not goal:
+            raise HTTPException(status_code=400, detail="business_id and goal are required")
+        
+        funnel = await lead_funnel_automator.create_funnel(business_id, goal)
+        
+        if not funnel:
+            raise HTTPException(status_code=500, detail="Failed to create funnel")
+        
+        return funnel
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Create funnel error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.post("/funnels/{funnel_id}/leads")
+async def add_lead_to_funnel(funnel_id: str, request: Request):
+    """
+    Add lead to funnel
+    
+    **Validates: Requirements 9.3, 9.5**
+    """
+    try:
+        if not lead_funnel_automator:
+            raise HTTPException(status_code=503, detail="Lead funnel automator not available")
+        
+        data = await request.json()
+        lead_data = {
+            'email': data.get('email'),
+            'name': data.get('name'),
+            'company': data.get('company')
+        }
+        
+        if not lead_data['email']:
+            raise HTTPException(status_code=400, detail="email is required")
+        
+        lead_id = await lead_funnel_automator.add_lead(funnel_id, lead_data)
+        
+        return {"success": True, "lead_id": lead_id, "funnel_id": funnel_id}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Add lead error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/funnels/{funnel_id}/analytics")
+async def get_funnel_analytics(funnel_id: str):
+    """
+    Get funnel analytics and conversion rates
+    
+    **Validates: Requirements 9.9**
+    """
+    try:
+        if not db:
+            raise HTTPException(status_code=503, detail="Database not available")
+        
+        # Get funnel
+        funnel = await db.lead_funnels.find_one({'id': funnel_id})
+        if not funnel:
+            raise HTTPException(status_code=404, detail="Funnel not found")
+        
+        # Get leads in funnel
+        leads = await db.leads.find({'funnel_id': funnel_id}).to_list(length=10000)
+        
+        # Calculate analytics
+        total_leads = len(leads)
+        active_leads = len([l for l in leads if l.get('status') == 'active'])
+        converted_leads = len([l for l in leads if l.get('converted')])
+        conversion_rate = (converted_leads / total_leads * 100) if total_leads > 0 else 0
+        
+        # Stage breakdown
+        stage_breakdown = {}
+        for stage in ['Awareness', 'Interest', 'Decision', 'Action']:
+            stage_leads = len([l for l in leads if l.get('current_stage') == stage])
+            stage_breakdown[stage] = {
+                'count': stage_leads,
+                'percentage': (stage_leads / total_leads * 100) if total_leads > 0 else 0
+            }
+        
+        analytics = {
+            'funnel_id': funnel_id,
+            'funnel_name': funnel.get('funnel_name'),
+            'total_leads': total_leads,
+            'active_leads': active_leads,
+            'converted_leads': converted_leads,
+            'conversion_rate': round(conversion_rate, 2),
+            'stage_breakdown': stage_breakdown,
+            'created_at': funnel.get('created_at')
+        }
+        
+        return analytics
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Get funnel analytics error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== APP SETUP ====================
 app.include_router(api_router)

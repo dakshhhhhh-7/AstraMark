@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\groq\_streaming.py
+# hypothesis_version: 6.151.10
+
+[b'\n\n', b'\r\n\r\n', b'\r\r', '\x00', ':', '[DONE]', '_T', 'data', 'error', 'event', 'id', 'message', 'retry', 'tuple[type, ...]', 'utf-8']

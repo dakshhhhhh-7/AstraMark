@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 
 class BusinessInput(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
-    business_type: str = Field(..., min_length=2, max_length=100, alias="business_type")
-    target_market: str = Field(..., min_length=2, max_length=200, alias="target_market")
-    monthly_budget: str = Field(..., pattern=r'^\$?\d+([,.]\d+)?$', alias="monthly_budget")
-    primary_goal: str = Field(..., min_length=10, max_length=500, alias="primary_goal")
+    business_type: str = Field(..., min_length=1, max_length=100, alias="business_type")
+    target_market: str = Field(..., min_length=1, max_length=200, alias="target_market")
+    monthly_budget: str = Field(..., min_length=1, max_length=50, alias="monthly_budget")
+    primary_goal: str = Field(..., min_length=1, max_length=500, alias="primary_goal")
     additional_info: Optional[str] = Field(None, max_length=1000, alias="additional_info")
     
     @validator('business_type')
@@ -16,6 +16,12 @@ class BusinessInput(BaseModel):
         # Block SQL injection attempts
         if any(char in v for char in ['<', '>', '{', '}', 'script']):
             raise ValueError('Invalid characters in business_type')
+        return v.strip()
+    
+    @validator('primary_goal')
+    def validate_primary_goal(cls, v):
+        if len(v.strip()) < 10:
+            raise ValueError('Primary goal must be at least 10 characters. Please provide more details about your goal.')
         return v.strip()
 
 class BusinessProfile(BusinessInput):
