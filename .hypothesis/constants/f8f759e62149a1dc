@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\bson\binary.py
+# hypothesis_version: 6.151.10
+
+[b'\x03', b'\x10', b"'", -128, 127, 128, 256, '%s not yet supported', '<sB', 'B', 'b', 'data', 'dtype', 'f', 'float32', 'int8', 'latin-1', 'padding', 'uint8']

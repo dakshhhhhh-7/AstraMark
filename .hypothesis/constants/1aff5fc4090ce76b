@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\rlp\sedes\serializable.py
+# hypothesis_version: 6.151.10
+
+['CLOSED', 'INITIALIZED', 'Meta', 'OPEN', '^[^\\d\\W]\\w*\\Z', '_', '__dict__', '__slots__', '_hash_cache', '_meta', "can't set attribute", 'field_attrs', 'field_names', 'fields', 'sedes']

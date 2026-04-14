@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\climate\_order.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'Order', 'Order.CancelParams', 'Order.CreateParams', 'Order.ListParams', 'Order.ModifyParams', 'Order.RetrieveParams', 'Product', 'Supplier', '_cls_cancel', '_cls_cancel_async', 'awaiting_funds', 'beneficiary', 'canceled', 'climate.order', 'confirmed', 'delivered', 'delivery_details', 'expired', 'get', 'id', 'location', 'open', 'post', 'product_unavailable', 'requested']

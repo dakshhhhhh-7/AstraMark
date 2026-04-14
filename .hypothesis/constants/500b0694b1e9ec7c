@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_account\messages.py
+# hypothesis_version: 6.151.10
+
+[b'\x00', b'\x01', b'\x19', b'E', b'thereum Signed Message:\n', 'EIP712Domain', 'domain', 'message', 'name', 'primaryType', 'types', 'utf-8']

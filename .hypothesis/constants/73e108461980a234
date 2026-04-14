@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\groq\resources\chat\completions.py
+# hypothesis_version: 6.151.10
+
+['AsyncCompletions', 'Completions', 'frequency_penalty', 'function_call', 'functions', 'gemma-7b-it', 'llama3-70b-8192', 'llama3-8b-8192', 'logit_bias', 'logprobs', 'max_tokens', 'messages', 'mixtral-8x7b-32768', 'model', 'n', 'parallel_tool_calls', 'presence_penalty', 'response_format', 'seed', 'stop', 'stream', 'temperature', 'tool_choice', 'tools', 'top_logprobs', 'top_p', 'user']

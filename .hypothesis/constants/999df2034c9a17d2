@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_product.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', '/v1/products/search', "Literal['']|str", 'Price', 'Product', 'Product.CreateParams', 'Product.DeleteParams', 'Product.ListParams', 'Product.ModifyParams', 'Product.SearchParams', 'ProductFeature', 'TaxCode', '_cls_delete', '_cls_delete_async', 'day', 'delete', 'exclusive', 'feature', 'get', 'good', 'inclusive', 'inf', 'marketing_features', 'month', 'package_dimensions', 'post', 'product', 'service', 'unspecified', 'week', 'year']

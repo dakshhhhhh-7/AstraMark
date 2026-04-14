@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\logging_config.py
+# hypothesis_version: 6.151.10
+
+['%(message)s', 'iso']

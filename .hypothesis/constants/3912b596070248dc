@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\config.py
+# hypothesis_version: 6.151.10
+
+[',', '.env', 'HS256', '__main__', 'astramark_dev', 'cors_origins', 'development', 'jwt_secret_key', 'production', 'stripe']

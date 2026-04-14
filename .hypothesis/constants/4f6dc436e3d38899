@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_account\_utils\transaction_utils.py
+# hypothesis_version: 6.151.10
+
+['0x1', '0x2', '0x3', '0x4', 'accessList', 'address', 'authorizationList', 'blobVersionedHashes', 'chainId', 'gasPrice', 'maxFeePerBlobGas', 'maxFeePerGas', 'maxPriorityFeePerGas', 'nonce', 'r', 's', 'storageKeys', 'type', 'yParity']

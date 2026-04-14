@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\groq\types\chat\completion_create_params.py
+# hypothesis_version: 6.151.10
+
+['Function', 'FunctionCall', 'ResponseFormat', 'auto', 'gemma-7b-it', 'json_object', 'llama3-70b-8192', 'llama3-8b-8192', 'mixtral-8x7b-32768', 'none', 'required', 'text']

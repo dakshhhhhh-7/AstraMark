@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_utils\currency.py
+# hypothesis_version: 6.151.10
+
+[256, 999, '.', 'babbage', 'ether', 'femtoether', 'finney', 'gether', 'grand', 'gwei', 'kether', 'kwei', 'lovelace', 'mether', 'micro', 'microether', 'milli', 'milliether', 'mwei', 'nano', 'nanoether', 'picoether', 'shannon', 'szabo', 'tether', 'wei']

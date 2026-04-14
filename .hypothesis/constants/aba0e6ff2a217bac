@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\cachetools\__init__.py
+# hypothesis_version: 6.151.10
+
+['%s is empty', '6.2.4', 'Cache', 'CacheInfo', 'FIFOCache', 'LFUCache', 'LRUCache', 'RRCache', 'TLRUCache', 'TTLCache', 'cached', 'cachedmethod', 'count', 'currsize', 'expires', 'hits', 'key', 'keys', 'maxsize', 'misses', 'next', 'prev', 'removed', 'value too large']

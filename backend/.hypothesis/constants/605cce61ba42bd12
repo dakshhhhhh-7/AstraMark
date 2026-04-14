@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_customer_balance_transaction.py
+# hypothesis_version: 6.151.10
+
+['CreditNote', 'Customer', 'Invoice', 'adjustment', 'applied_to_invoice', 'credit_note', 'initial', 'invoice_overpaid', 'invoice_too_large', 'invoice_too_small', 'migration']

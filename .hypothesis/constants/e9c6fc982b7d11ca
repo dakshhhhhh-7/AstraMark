@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\razorpay\constants\url.py
+# hypothesis_version: 6.151.10
+
+['/accounts', '/addons', '/cards', '/customers', '/disputes', '/documents', '/fund_accounts', '/iins', '/invoices', '/items', '/orders', '/payment_links', '/payments', '/payments/qr_codes', '/plans', '/products', '/refunds', '/settlements', '/stakeholders', '/subscriptions', '/tnc', '/tokens', '/transfers', '/v1', '/v2', '/virtual_accounts', '/webhooks']

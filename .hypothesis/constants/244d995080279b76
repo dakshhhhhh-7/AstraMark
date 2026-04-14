@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_dispute.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'BalanceTransaction', 'Charge', 'Dispute', 'Dispute.CloseParams', 'Dispute.ListParams', 'Dispute.ModifyParams', 'File', 'PaymentIntent', '_cls_close', '_cls_close_async', 'card', 'chargeback', 'dispute', 'evidence', 'evidence_details', 'get', 'id', 'inquiry', 'klarna', 'lost', 'needs_response', 'paypal', 'post', 'under_review', 'warning_closed', 'warning_under_review', 'won']

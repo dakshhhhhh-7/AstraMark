@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\websockets\exceptions.py
+# hypothesis_version: 6.151.10
+
+['.legacy.exceptions', 'AbortHandshake', 'ConcurrencyError', 'ConnectionClosed', 'ConnectionClosedOK', 'DuplicateParameter', 'InvalidHandshake', 'InvalidHeader', 'InvalidHeaderFormat', 'InvalidHeaderValue', 'InvalidMessage', 'InvalidOrigin', 'InvalidParameterName', 'InvalidProxy', 'InvalidProxyMessage', 'InvalidProxyStatus', 'InvalidState', 'InvalidStatus', 'InvalidStatusCode', 'InvalidURI', 'InvalidUpgrade', 'NegotiationError', 'Origin', 'PayloadTooBig', 'ProtocolError', 'ProxyError', 'RedirectHandshake', 'SecurityError', 'WebSocketException', 'frame ']

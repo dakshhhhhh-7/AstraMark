@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_transfer.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'Account', 'BalanceTransaction', 'Charge', 'Reversal', 'Transfer', 'Transfer.ListParams', 'bank_account', 'card', 'fpx', 'get', 'post', 'reversal', 'transfer']

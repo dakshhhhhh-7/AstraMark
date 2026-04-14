@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\monitoring.py
+# hypothesis_version: 6.151.10
+
+[0.1, 1.0, '$action', '$group', '$gte', '$match', '$sum', '1.0.0', 'Database connected', 'X-Process-Time', '_id', 'action', 'ai_service', 'analysis_request', 'checks', 'count', 'created_at', 'database', 'environment', 'free', 'healthy', 'message', 'metrics', 'payment_service', 'performance', 'ping', 'plan', 'status', 'timestamp', 'unhealthy', 'user_id', 'warning']

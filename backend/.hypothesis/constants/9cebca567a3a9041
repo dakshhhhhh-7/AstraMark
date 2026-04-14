@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_person.py
+# hypothesis_version: 6.151.10
+
+['%s/%s/persons/%s', 'File', 'Person', 'account', 'additional_document', 'address', 'address_kana', 'address_kanji', 'alternatives', 'dob', 'document', 'errors', 'existing', 'future_requirements', 'invalid_tax_id', 'invalid_url_format', 'invalid_url_length', 'invalid_value_other', 'none', 'person', 'registered_address', 'relationship', 'requirements', 'verification']

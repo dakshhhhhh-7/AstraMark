@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_token.py
+# hypothesis_version: 6.151.10
+
+['BankAccount', 'Card', "Literal['']|float", "Literal['']|str", 'Token', 'Token.CreateParams', 'Token.RetrieveParams', 'cartes_bancaires', 'checking', 'company', 'existing', 'futsu', 'government_entity', 'individual', 'mastercard', 'non_profit', 'none', 'post', 'savings', 'token', 'toza', 'visa']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\web3\_utils\transactions.py
+# hypothesis_version: 6.151.10
+
+[1.125, 100000, 'AsyncWeb3[Any]', 'Web3', 'accessList', 'baseFeePerGas', 'blobVersionedHashes', 'blockHash', 'chainId', 'data', 'from', 'gas', 'gasLimit', 'gasPrice', 'input', 'latest', 'maxFeePerBlobGas', 'maxFeePerGas', 'maxPriorityFeePerGas', 'nonce', 'pending', 'to', 'type', 'value']

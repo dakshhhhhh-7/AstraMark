@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_application_fee_refund.py
+# hypothesis_version: 6.151.10
+
+['%s/%s/refunds/%s', 'ApplicationFee', 'ApplicationFeeRefund', 'BalanceTransaction', 'fee_refund', 'post']

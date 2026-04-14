@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_account\typed_transactions\blob_transactions\blob_transaction.py
+# hypothesis_version: 6.151.10
+
+[b'0x3', 4096, '0x0', 'BlobTransaction', 'accessList', 'blobVersionedHashes', 'blobs', 'chainId', 'commitments', 'data', 'fields', 'gas', 'maxFeePerBlobGas', 'maxFeePerGas', 'maxPriorityFeePerGas', 'nonce', 'proofs', 'r', 's', 'to', 'tx_payload_body', 'type', 'unexpected input', 'v', 'value', 'vrs']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\treasury\_debit_reversal.py
+# hypothesis_version: 6.151.10
+
+['DebitReversal', 'Transaction', 'ach', 'canceled', 'card', 'completed', 'failed', 'get', 'linked_flows', 'lost', 'post', 'processing', 'status_transitions', 'succeeded', 'won']

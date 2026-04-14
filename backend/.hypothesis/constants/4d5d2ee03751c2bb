@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_product_service.py
+# hypothesis_version: 6.151.10
+
+['/v1/products', '/v1/products/search', '/v1/products/{id}', "Literal['']|str", 'V1', 'api', 'day', 'delete', 'exclusive', 'get', 'good', 'inclusive', 'inf', 'month', 'post', 'service', 'unspecified', 'week', 'year']

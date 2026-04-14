@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\content_service.py
+# hypothesis_version: 6.151.10
+
+[0.7, 0.8, 0.9, '#AIMarketing', '09:00 AM', '2026-01-13', 'AI-powered platform', 'Article', 'Automated insights', 'Get Started', 'LinkedIn', 'Monday', 'Problem', 'Social Media', 'Solution', 'application/json', 'body', 'caption', 'channel', 'content', 'content_calendar', 'content_ideas', 'content_type', 'cta', 'cta_link', 'data_source', 'date', 'day', 'days', 'duration_weeks', 'email_number', 'email_sequence', 'emails', 'gemini-1.5-flash', 'gemini-2.0-flash-exp', 'generated_at', 'hashtags', 'mock', 'onboarding', 'pitch_deck', 'posts', 'preview_text', 'response_mime_type', 'send_delay_days', 'sequence_name', 'sequence_type', 'slide_number', 'slides', 'speaker_notes', 'strategies', 'subject_line', 'temperature', 'time', 'title', 'topic', 'total_emails', 'total_posts', 'total_slides', 'user_personas', 'week_number', 'weeks']

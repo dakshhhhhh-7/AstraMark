@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\parsimonious\expressions.py
+# hypothesis_version: 6.151.10
+
+[' / ', '!', '%s = %s', '%s%s', '&', '(', '({0})', ')', '*', '+', '<%s %s>', '?', '__func__', 'identity_tuple', 'ilmsuxa', 'inf', 'literal', 'max', 'members', 'min', 'name', 'negativity', 're', '{%d,%d}', '{%d,}', '{,%d}', '~{!r}{}']

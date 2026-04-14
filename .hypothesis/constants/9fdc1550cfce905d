@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\campaign_launcher.py
+# hypothesis_version: 6.151.10
+
+[100, '$in', '$set', 'ObjectId', '__class__', '_id', 'active', 'ad_creatives', 'assets', 'budget_allocation', 'business_id', 'campaign_id', 'campaign_name', 'channel', 'channels', 'clicks', 'conversions', 'created_at', 'created_by', 'creatives_deployed', 'deployed', 'deployed_at', 'deployment_id', 'deployments', 'draft', 'email', 'email marketing', 'email_sequence', 'emails_scheduled', 'error', 'facebook', 'facebook ads', 'facebookads', 'failed', 'failed_at', 'goal', 'google', 'google ads', 'googleads', 'id', 'impressions', 'landing_page', 'launched', 'launched_at', 'meta', 'name', 'paused', 'paused_at', 'performance', 'platform', 'resumed_at', 'revenue', 'roi', 'rolled_back', 'rolled_back_at', 'spend', 'spent', 'status', 'targeting', 'total_budget', 'updated_at', 'user', 'version']

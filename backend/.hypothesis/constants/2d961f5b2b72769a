@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_abi\grammar.py
+# hypothesis_version: 6.151.10
+
+[256, '()', 'address', 'arrlist', 'base', 'byte', 'bytes', 'bytes1', 'bytes24', 'components', 'fixed', 'fixed128x18', 'function', 'hash', 'int', 'int256', 'node', 'string', 'sub', 'ufixed', 'ufixed128x18', 'uint', 'uint256', 'x']

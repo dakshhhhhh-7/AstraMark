@@ -6,10 +6,16 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Check, Sparkles, ArrowLeft } from "lucide-react";
+import { Check, Sparkles, ArrowLeft, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import PaymentGatewaySelector from "./PaymentGatewaySelector";
-import axios from "axios";
+import { initiateRazorpayPayment } from "@/utils/razorpayPayment";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { getAccessToken } from "@/utils/apiClient";
+
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 const plans = [
     {
@@ -82,9 +88,13 @@ const plans = [
 ];
 
 export function PricingModal({ isOpen, onClose }) {
+    const { user } = useAuth();
+    const navigate = useNavigate();
     const [selectedPlan, setSelectedPlan] = useState(null);
     const [showPaymentGateways, setShowPaymentGateways] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
+    const [success, setSuccess] = useState(false);
 
     const handlePlanSelect = (plan) => {
         if (plan.id === 'enterprise') {
@@ -93,30 +103,141 @@ export function PricingModal({ isOpen, onClose }) {
             return;
         }
         
+        // CRITICAL: Check if user is logged in BEFORE showing payment gateway
+        if (!user) {
+            console.error('❌ User not logged in - showing error');
+            setError('You must be logged in to subscribe. Redirecting to login...');
+            setTimeout(() => {
+                onClose();
+                navigate('/login');
+            }, 2000);
+            return;
+        }
+        
+        console.log('✅ User is logged in:', user.email);
         setSelectedPlan(plan);
         setShowPaymentGateways(true);
+        setError(null); // Clear any previous errors
     };
 
     const handlePaymentInitiate = async (gateway, plan) => {
         setLoading(true);
+        setError(null);
+        
         try {
-            const response = await axios.post('/api/payments/checkout', {
-                plan_id: plan.id,
-                gateway: gateway,
-                success_url: `${window.location.origin}/payment/success`,
-                cancel_url: `${window.location.origin}/payment/cancel`
-            });
-
-            // Redirect to payment gateway
-            if (gateway === 'stripe') {
-                window.location.href = response.data.checkout_url;
-            } else if (gateway === 'razorpay') {
-                window.location.href = response.data.payment_url;
+            // CRITICAL: Double-check authentication
+            const token = getAccessToken();
+            console.log('🔐 Pre-payment token check:', token ? 'Token exists' : 'No token');
+            console.log('👤 User state:', user ? `Logged in as ${user.email}` : 'No user');
+            
+            if (!token || !user) {
+                console.error('❌ Authentication check failed');
+                setError('Your session has expired. Please log in again.');
+                setLoading(false);
+                setTimeout(() => {
+                    navigate('/login');
+                }, 2000);
+                return;
             }
-        } catch (error) {
-            console.error('Payment initiation failed:', error);
-            alert('Payment initiation failed. Please try again.');
-        } finally {
+            
+            console.log('💳 Initiating payment:', { gateway, plan: plan.id, user: user.email });
+            
+            if (gateway === 'razorpay') {
+                // Use production-grade Razorpay handler
+                await initiateRazorpayPayment(
+                    plan.id,
+                    // Success callback
+                    (response) => {
+                        console.log('✅ Payment successful:', response);
+                        setSuccess(true);
+                        setLoading(false);
+                        
+                        // Show success message
+                        setTimeout(() => {
+                            alert(`🎉 Payment successful! Your ${plan.name} plan is now active.`);
+                            onClose();
+                            window.location.reload(); // Refresh to update subscription status
+                        }, 500);
+                    },
+                    // Failure callback
+                    (error) => {
+                        console.error('❌ Payment failed:', error);
+                        setLoading(false);
+                        
+                        // User-friendly error messages
+                        let errorMessage = 'Payment failed. Please try again.';
+                        
+                        switch (error.code) {
+                            case 'AUTHENTICATION_REQUIRED':
+                            case 'AUTHENTICATION_EXPIRED':
+                                errorMessage = 'Your session has expired. Redirecting to login...';
+                                setError(errorMessage);
+                                setTimeout(() => {
+                                    window.location.href = '/login';
+                                }, 2000);
+                                return;
+                            case 'SCRIPT_LOAD_FAILED':
+                                errorMessage = 'Unable to load payment gateway. Please check your internet connection.';
+                                break;
+                            case 'NETWORK_ERROR':
+                                errorMessage = 'Network error. Please check your connection and try again.';
+                                break;
+                            case 'SERVICE_UNAVAILABLE':
+                                errorMessage = 'Payment service is temporarily unavailable. Please try again later.';
+                                break;
+                            case 'PAYMENT_CANCELLED':
+                                errorMessage = 'Payment was cancelled.';
+                                break;
+                            case 'PAYMENT_FAILED':
+                                errorMessage = error.message || 'Payment failed. Please try again.';
+                                break;
+                            case 'VERIFICATION_FAILED':
+                                errorMessage = 'Payment verification failed. Please contact support.';
+                                break;
+                            default:
+                                errorMessage = error.message || 'An unexpected error occurred.';
+                        }
+                        
+                        setError(errorMessage);
+                    }
+                );
+            } else if (gateway === 'stripe') {
+                // Stripe implementation (existing code)
+                const axios = (await import('axios')).default;
+                const response = await axios.post(
+                    `${BACKEND_URL}/api/payments/checkout`,
+                    {
+                        plan_id: plan.id,
+                        gateway: gateway,
+                        success_url: `${window.location.origin}/payment/success`,
+                        cancel_url: `${window.location.origin}/payment/cancel`
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                // Redirect to Stripe
+                if (response.data.checkout_url) {
+                    window.location.href = response.data.checkout_url;
+                }
+            }
+        } catch (err) {
+            console.error('Payment initiation error:', err);
+            
+            // Check if it's an authentication error
+            if (err.response && err.response.status === 401) {
+                setError('Your session has expired. Redirecting to login...');
+                setTimeout(() => {
+                    window.location.href = '/login';
+                }, 2000);
+            } else {
+                setError('Failed to initiate payment. Please try again.');
+            }
+            
             setLoading(false);
         }
     };
@@ -162,6 +283,22 @@ export function PricingModal({ isOpen, onClose }) {
 
                 {showPaymentGateways ? (
                     <div className="mt-6">
+                        {error && (
+                            <Alert variant="destructive" className="mb-4">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{error}</AlertDescription>
+                            </Alert>
+                        )}
+                        
+                        {success && (
+                            <Alert className="mb-4 bg-green-50 border-green-200">
+                                <Check className="h-4 w-4 text-green-600" />
+                                <AlertDescription className="text-green-800">
+                                    Payment successful! Your subscription is now active.
+                                </AlertDescription>
+                            </Alert>
+                        )}
+                        
                         <PaymentGatewaySelector
                             selectedPlan={selectedPlan}
                             onPaymentInitiate={handlePaymentInitiate}

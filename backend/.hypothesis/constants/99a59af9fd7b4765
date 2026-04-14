@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\pymongo\asynchronous\database.py
+# hypothesis_version: 6.151.10
+
+['$cmd', '$external', 'AsyncMongoClient', '_', '_id', 'background', 'clusteredIndex', 'comment', 'corrupt', 'cursor', 'drop', 'encryptedFields', 'encrypted_fields', 'exception', 'filter', 'firstBatch', 'full', 'listCollections', 'name', 'nameOnly', 'ns not found', 'raw', 'result', 'scandata', 'valid', 'validate']

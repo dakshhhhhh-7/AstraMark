@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\razorpay\constants\error_code.py
+# hypothesis_version: 6.151.10
+
+['BAD_REQUEST_ERROR', 'GATEWAY_ERROR', 'SERVER_ERROR']

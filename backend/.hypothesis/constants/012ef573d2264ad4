@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_abi\registry.py
+# hypothesis_version: 6.151.10
+
+[' and sub is None', ' and sub is not None', ')', ', ', 'ABIRegistry', 'No matching', 'address', 'base', 'bool', 'bytes', 'bytes<M>', 'decoder registry', 'encoder registry', 'fixed', 'function', 'has_arrlist', 'int', 'is_base_tuple', 'is_dynamic', 'string', 'ufixed', 'uint', 'value', 'with_sub']

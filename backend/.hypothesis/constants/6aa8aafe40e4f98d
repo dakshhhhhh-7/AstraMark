@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_review.py
+# hypothesis_version: 6.151.10
+
+['Charge', 'PaymentIntent', 'Review', 'Review.ApproveParams', 'Review.ListParams', '_cls_approve', '_cls_approve_async', 'approved', 'disputed', 'get', 'id', 'ip_address_location', 'manual', 'post', 'redacted', 'refunded', 'refunded_as_fraud', 'review', 'rule', 'session']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\httpx\_exceptions.py
+# hypothesis_version: 6.151.10
+
+['CloseError', 'ConnectError', 'ConnectTimeout', 'CookieConflict', 'DecodingError', 'HTTPError', 'HTTPStatusError', 'InvalidURL', 'LocalProtocolError', 'NetworkError', 'PoolTimeout', 'ProtocolError', 'ProxyError', 'ReadError', 'ReadTimeout', 'RemoteProtocolError', 'RequestError', 'RequestNotRead', 'ResponseNotRead', 'StreamClosed', 'StreamConsumed', 'StreamError', 'TimeoutException', 'TooManyRedirects', 'TransportError', 'UnsupportedProtocol', 'WriteError', 'WriteTimeout']

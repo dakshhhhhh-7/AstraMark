@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\billing\_meter.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'Meter', 'Meter.CreateParams', 'Meter.ListParams', 'Meter.ModifyParams', 'Meter.RetrieveParams', 'MeterEventSummary', '_cls_deactivate', '_cls_reactivate', 'active', 'billing.meter', 'by_id', 'count', 'customer_mapping', 'day', 'default_aggregation', 'event_summary', 'get', 'hour', 'id', 'inactive', 'post', 'status_transitions', 'sum', 'value_settings']

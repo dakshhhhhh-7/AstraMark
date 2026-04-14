@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\razorpay\resources\payment.py
+# hypothesis_version: 6.151.10
+
+['/{}', 'amount', 'create', 'downtimes', 'json', 'methods', 'upi', 'vpa', '{}/create/{}', '{}/downtimes/{}', '{}/validate/{}', '{}/{}', '{}/{}/bank_transfer', '{}/{}/capture', '{}/{}/card', '{}/{}/otp/resend', '{}/{}/otp/submit', '{}/{}/otp_generate', '{}/{}/recurring', '{}/{}/refund', '{}/{}/refunds', '{}/{}/refunds/{}', '{}/{}/transfers', '{}/{}/upi_transfer']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\limits\storage\redis_cluster.py
+# hypothesis_version: 6.151.10
+
+[1000, '*', ',', '2.5.0', '3.14.0', '4.2.0', '4.3', '6.0', ':', '@', 'max_connections', 'password', 'redis', 'redis+cluster', 'username', 'utf-8', 'valkey', 'valkey+cluster']

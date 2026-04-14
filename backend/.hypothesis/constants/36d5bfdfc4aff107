@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\blockchain_service.py
+# hypothesis_version: 6.151.10
+
+[21000, 80002, 'CONTRACT_ADDRESS', 'ENABLE_BLOCKCHAIN', 'POLYGON_RPC_URL', 'Polygon Amoy Testnet', 'WALLET_ADDRESS', 'WALLET_PRIVATE_KEY', 'analysis_id', 'chainId', 'created_at', 'data', 'explorer_url', 'false', 'gas', 'gasPrice', 'hash', 'id', 'mongodb', 'network', 'nonce', 'proof_hash', 'storage', 'timestamp', 'to', 'true', 'tx_hash', 'unknown', 'value', 'verified', 'wallet']

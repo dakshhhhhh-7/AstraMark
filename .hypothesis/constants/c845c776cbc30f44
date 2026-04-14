@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\billing\_alert.py
+# hypothesis_version: 6.151.10
+
+['Alert', 'Alert.ActivateParams', 'Alert.ArchiveParams', 'Alert.CreateParams', 'Alert.ListParams', 'Alert.RetrieveParams', 'Customer', 'Meter', '_cls_activate', '_cls_activate_async', '_cls_archive', '_cls_archive_async', '_cls_deactivate', 'active', 'archived', 'billing.alert', 'filter', 'get', 'id', 'inactive', 'one_time', 'post', 'usage_threshold']

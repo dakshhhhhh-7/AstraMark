@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\google\ai\generativelanguage_v1beta\services\text_service\client.py
+# hypothesis_version: 6.151.10
+
+['.googleapis.com', '.mtls.googleapis.com', 'TextServiceClient', 'always', 'api_key', 'auto', 'credentials', 'false', 'folders/{folder}', 'googleapis.com', 'grpc', 'grpc_asyncio', 'model', 'models/{model}', 'never', 'projects/{project}', 'rest', 'true', 'universe_domain']

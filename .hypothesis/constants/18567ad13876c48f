@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\pymongo\cursor_shared.py
+# hypothesis_version: 6.151.10
+
+[128, 136, 175, 237, 17406, 28617, 'await_data', 'exhaust', 'no_timeout', 'oplog_replay', 'partial', 'secondary_okay', 'tailable_cursor']

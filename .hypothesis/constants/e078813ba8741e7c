@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_shipping_rate.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'ShippingRate', 'TaxCode', 'business_day', 'currency_options', 'day', 'delivery_estimate', 'exclusive', 'fixed_amount', 'get', 'hour', 'inclusive', 'maximum', 'minimum', 'month', 'post', 'shipping_rate', 'unspecified', 'week']

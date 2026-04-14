@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\parsimonious\nodes.py
+# hypothesis_version: 6.151.10
+
+[' called "%s"', '%s(%r, s, %s, %s%s)', ', ', ', children=[%s]', '_rule', 'children', 'end', 'expr', 'full_text', 'grammar', 'match', 'parse', 's = %r', 'start', 'visit_', '{name} = {expr}']

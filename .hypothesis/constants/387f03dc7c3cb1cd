@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\bitarray\util.py
+# hypothesis_version: 6.151.10
+
+[0.0, 0.01, 0.2, 0.4, 0.5, 1.0, 100, 105, 210, '\n%s', '%s(%s', '%s)\n', "'", "'''", '0', '00110101', '01110110', '1', 'any_and', 'ba2base', 'ba2hex', 'ba2int', 'base2ba', 'big', 'both', 'byteswap', 'canonical_decode', 'canonical_huffman', 'correspond_all', 'count_and', 'count_n', 'count_or', 'count_xor', 'deserialize', 'gen_primes', 'group must be >= 1', 'hex2ba', 'huffman_code', 'indent must be >= 0', 'int2ba', 'intervals', 'left', 'length must be > 0', 'little', 'ones', 'parity', 'pprint', 'random_k', 'random_p', 'right', 'sc_decode', 'sc_encode', 'serialize', 'strip', 'subset', 'sum_indices', 'unexpected mode %r', 'urandom', 'vl_decode', 'vl_encode', 'xor_indices', 'zeros']

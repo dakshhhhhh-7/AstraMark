@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\competitor_hijacking_engine.py
+# hypothesis_version: 6.151.10
+
+[100, 1000, '$1K-5K/month', '$each', '$push', '$set', '10K-50K/month', 'Unknown', '_id', 'active_campaigns', 'ad_monitoring', 'analyzed_at', 'bottlenecks', 'business_id', 'change_percentage', 'changes_detected', 'confidence', 'content', 'conversion_rate', 'description', 'details', 'detected_at', 'domain', 'domain_authority', 'element', 'error', 'estimated_ad_spend', 'estimated_traffic', 'high', 'hijack_strategies', 'id', 'impact', 'issue', 'last_scan', 'medium', 'metrics', 'monitoring_since', 'name', 'new_ad_campaign', 'new_length', 'old_length', 'opportunity', 'significant', 'strategies', 'title', 'top_keywords', 'type', 'updated_at', 'url', 'weaknesses', 'website_change', 'website_monitoring', 'website_snapshot', 'www.']

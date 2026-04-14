@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\limits\aio\storage\base.py
+# hypothesis_version: 6.151.10
+
+['2.1', 'acquire_entry', 'check', 'clear', 'clear_sliding_window', 'get', 'get_expiry', 'get_moving_window', 'get_sliding_window', 'incr', 'reset']

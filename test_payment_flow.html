@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Payment Flow</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #0f0; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+        .log { background: #000; padding: 10px; margin: 10px 0; border: 1px solid #0f0; }
+        .error { color: #f00; }
+        .success { color: #0f0; }
+    </style>
+</head>
+<body>
+    <h1>🔥 PAYMENT FLOW DEBUGGER</h1>
+    
+    <button onclick="testRegister()">0. Register New User</button>
+    <button onclick="testLogin()">1. Test Login</button>
+    <button onclick="testCreateOrder()">2. Test Create Order</button>
+    <button onclick="testRefresh()">3. Test Token Refresh</button>
+    <button onclick="clearAll()">Clear Storage</button>
+    
+    <div id="logs"></div>
+
+    <script>
+        const BACKEND = 'http://localhost:8001';
+        
+        function log(msg, type = 'info') {
+            const div = document.createElement('div');
+            div.className = `log ${type}`;
+            div.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+            document.getElementById('logs').appendChild(div);
+            console.log(msg);
+        }
+
+        async function testRegister() {
+            try {
+                log('📝 Registering new user...');
+                
+                const response = await fetch(`${BACKEND}/api/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'password123',
+                        full_name: 'Test User'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Registration successful!`, 'success');
+                    log('✅ Now click "1. Test Login"', 'success');
+                } else {
+                    log(`❌ Registration failed: ${JSON.stringify(data)}`, 'error');
+                    if (data.detail && data.detail.includes('already exists')) {
+                        log('⚠️ User already exists. Try login instead.', 'error');
+                    }
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testLogin() {
+            try {
+                log('🔐 Testing login...');
+                
+                const formData = new URLSearchParams();
+                formData.append('username', 'test@example.com');
+                formData.append('password', 'password123');
+                
+                const response = await fetch(`${BACKEND}/api/auth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('user_token', data.access_token);
+                    localStorage.setItem('refresh_token', data.refresh_token);
+                    log(`✅ Login successful! Token: ${data.access_token.substring(0, 20)}...`, 'success');
+                    log(`✅ Refresh token: ${data.refresh_token.substring(0, 20)}...`, 'success');
+                } else {
+                    log(`❌ Login failed: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testCreateOrder() {
+            try {
+                const token = localStorage.getItem('user_token');
+                if (!token) {
+                    log('❌ No token found. Login first!', 'error');
+                    return;
+                }
+                
+                log(`🔐 Using token: ${token.substring(0, 20)}...`);
+                log('💳 Creating Razorpay order...');
+                
+                const response = await fetch(`${BACKEND}/api/payments/razorpay/create-order`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ plan_id: 'pro' })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Order created! ${JSON.stringify(data)}`, 'success');
+                } else {
+                    log(`❌ Order creation failed (${response.status}): ${JSON.stringify(data)}`, 'error');
+                    
+                    if (response.status === 401) {
+                        log('⚠️ Token expired or invalid. Trying refresh...', 'error');
+                        await testRefresh();
+                    }
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        async function testRefresh() {
+            try {
+                const refreshToken = localStorage.getItem('refresh_token');
+                if (!refreshToken) {
+                    log('❌ No refresh token found!', 'error');
+                    return;
+                }
+                
+                log(`🔄 Refreshing token...`);
+                log(`🔐 Using refresh token: ${refreshToken.substring(0, 20)}...`);
+                
+                const response = await fetch(`${BACKEND}/api/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ refresh_token: refreshToken })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    localStorage.setItem('user_token', data.access_token);
+                    log(`✅ Token refreshed! New token: ${data.access_token.substring(0, 20)}...`, 'success');
+                    
+                    // Now retry the order creation
+                    log('🔄 Retrying order creation with new token...');
+                    await testCreateOrder();
+                } else {
+                    log(`❌ Refresh failed: ${JSON.stringify(data)}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+            }
+        }
+
+        function clearAll() {
+            localStorage.clear();
+            document.getElementById('logs').innerHTML = '';
+            log('🗑️ Storage cleared!', 'success');
+        }
+
+        // Auto-check tokens on load
+        window.onload = () => {
+            const token = localStorage.getItem('user_token');
+            const refresh = localStorage.getItem('refresh_token');
+            
+            if (token) {
+                log(`📦 Found access token: ${token.substring(0, 20)}...`);
+            } else {
+                log('⚠️ No access token found');
+            }
+            
+            if (refresh) {
+                log(`📦 Found refresh token: ${refresh.substring(0, 20)}...`);
+            } else {
+                log('⚠️ No refresh token found');
+            }
+        };
+    </script>
+</body>
+</html>

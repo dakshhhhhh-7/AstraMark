@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\terminal\_reader_service.py
+# hypothesis_version: 6.151.10
+
+['/v1/terminal/readers', "Literal['']|str", 'V1', 'api', 'bbpos_chipper2x', 'bbpos_wisepad3', 'bbpos_wisepos_e', 'cart', 'delete', 'get', 'mobile_phone_reader', 'offline', 'online', 'post', 'simulated_wisepos_e', 'stripe_m2', 'stripe_s700', 'verifone_P400']

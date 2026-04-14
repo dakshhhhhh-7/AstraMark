@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_account\typed_transactions\access_list_transaction.py
+# hypothesis_version: 6.151.10
+
+[b'0x1', '0x0', 'accessList', 'chainId', 'data', 'fields', 'gas', 'gasPrice', 'nonce', 'r', 's', 'to', 'type', 'unexpected input', 'v', 'value', 'vrs']

@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\middleware\error_handler.py
+# hypothesis_version: 6.151.10
+
+['ENVIRONMENT', 'InternalServerError', 'error', 'message', 'production', 'request_id']

@@ -1,10 +1,10 @@
-import axios from 'axios';
+import apiClient, { setTokens, clearTokens } from '@/utils/apiClient';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const API_URL = `${BACKEND_URL}/api/auth`;
 
 const register = async (email, password, fullName) => {
-    const response = await axios.post(`${API_URL}/register`, {
+    const response = await apiClient.post('/api/auth/register', {
         email,
         password,
         full_name: fullName,
@@ -17,30 +17,28 @@ const login = async (email, password) => {
     params.append('username', email);
     params.append('password', password);
 
-    const response = await axios.post(`${API_URL}/token`, params, {
+    const response = await apiClient.post('/api/auth/token', params, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
         },
     });
 
     if (response.data.access_token) {
-        localStorage.setItem('user_token', response.data.access_token);
+        // Update tokens in centralized API client (CRITICAL)
+        setTokens(response.data.access_token, response.data.refresh_token);
     }
+    
     return response.data;
 };
 
 const logout = () => {
-    localStorage.removeItem('user_token');
+    // Clear tokens from centralized API client
+    clearTokens();
 };
 
 const getCurrentUser = async () => {
-    const token = localStorage.getItem('user_token');
-    if (!token) return null;
-
     try {
-        const response = await axios.get(`${API_URL}/me`, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        const response = await apiClient.get('/api/auth/me');
         return response.data;
     } catch (error) {
         return null;

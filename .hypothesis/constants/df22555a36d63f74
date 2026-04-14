@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\google\generativeai\types\content_types.py
+# hypothesis_version: 6.151.10
+
+['$defs', '$ref', 'BlobDict', 'BlobType', 'ContentDict', 'ContentType', 'ContentsType', 'FunctionDeclaration', 'FunctionLibrary', 'FunctionLibraryType', 'GIF', 'JPEG', 'P', 'PNG', 'PartDict', 'PartType', 'RGB', 'RGBA', 'StrictContentType', 'Tool', 'ToolDict', 'ToolsType', 'ValueType', 'any', 'anyOf', 'auto', 'code_execution', 'data', 'defs/', 'dummy', 'file_data', 'format', 'format_', 'function', 'function_call', 'function_response', 'get_format_mimetype', 'image/gif', 'image/jpeg', 'image/png', 'image/unknown', 'inline_data', 'items', 'mime_type', 'mode', 'mode_any', 'mode_auto', 'mode_none', 'none', 'null', 'nullable', 'object', 'parameters', 'parts', 'properties', 'required', 'result', 'text', 'title', 'type', 'type_']

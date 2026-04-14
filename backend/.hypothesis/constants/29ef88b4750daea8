@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\web3\contract\base_contract.py
+# hypothesis_version: 6.151.10
+
+['(', ', ', '>', 'AsyncWeb3[Any]', 'BaseContractEvent', 'BaseContractFunction', 'Web3', '_events', '_functions', 'abi', 'address', 'args', 'arguments', 'blockHash', 'constructor', "contract's abi.", 'data', 'errors', 'event', 'fallback', 'from', 'fromBlock', 'function', 'indexed', 'inputs', 'latest', 'logs', 'name', 'receive', 'selector', 'signature', 'string', 'to', 'toBlock', 'topic', 'type']

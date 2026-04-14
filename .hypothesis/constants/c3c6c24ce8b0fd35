@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_payment_method_domain.py
+# hypothesis_version: 6.151.10
+
+['%s/%s', 'PaymentMethodDomain', '_cls_validate', '_cls_validate_async', 'active', 'apple_pay', 'get', 'google_pay', 'id', 'inactive', 'link', 'paypal', 'post', 'status_details']

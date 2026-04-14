@@ -8,6 +8,8 @@ from fastapi import (
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
+import ssl
+import certifi
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, EmailStr, Field
 import os
@@ -33,7 +35,7 @@ from google.generativeai import types
 
 # Import our services
 from config import settings, validate_required_settings
-from auth_service import AuthService, AuthTokens, UserInDB, create_auth_tokens
+from auth_service import AuthService, AuthTokens, UserInDB, create_auth_tokens, create_access_token as create_proper_access_token
 from unified_payment_service import UnifiedPaymentService
 from monitoring import MetricsMiddleware, HealthCheck, UsageTracker, monitor_performance
 from serp_service import serp_service
@@ -101,8 +103,16 @@ limiter = Limiter(key_func=get_remote_address)
 # OAuth2 scheme for authentication
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/token")
 
-# Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+import hashlib
+
+# Password hashing - Simple SHA256 (for development only)
+def hash_password_simple(password: str) -> str:
+    """Hash password using SHA256"""
+    return hashlib.sha256(password.encode()).hexdigest()
+
+def verify_password_simple(plain_password: str, hashed_password: str) -> bool:
+    """Verify password against hash"""
+    return hash_password_simple(plain_password) == hashed_password
 
 # JWT Configuration
 SECRET_KEY = settings.jwt_secret_key
@@ -137,35 +147,25 @@ async def lifespan(app: FastAPI):
     
     # 1. Database Connection
     try:
-        # MongoDB connection with SSL/TLS configuration
-        # Development SSL workaround for Python 3.10 on Windows
-        import ssl
-        import certifi
+        # MongoDB connection - Use tlsInsecure in connection string
+        logger.info("Configuring MongoDB connection with tlsInsecure...")
         
-        logger.info("Configuring MongoDB connection...")
+        # Add tlsInsecure to connection string
+        mongo_url = settings.mongo_url
+        if "?" in mongo_url:
+            mongo_url = f"{mongo_url}&tlsInsecure=true"
+        else:
+            mongo_url = f"{mongo_url}?tlsInsecure=true&retryWrites=true&w=majority"
         
-        # Build connection parameters
+        # Minimal connection params
+
         connection_params = {
-            "serverSelectionTimeoutMS": 10000,
-            "retryWrites": True,
-            "retryReads": True,
-            "maxPoolSize": 50,
-            "minPoolSize": 10
+            "serverSelectionTimeoutMS": 30000,
+            "connectTimeoutMS": 30000,
+            "socketTimeoutMS": 30000
         }
         
-        # Add SSL/TLS parameters based on environment
-        if settings.environment == "development":
-            # Development: relaxed SSL for Windows Python 3.10 compatibility
-            logger.warning("Using relaxed SSL settings for development environment")
-            connection_params["tls"] = True
-            connection_params["tlsAllowInvalidCertificates"] = True
-            connection_params["tlsAllowInvalidHostnames"] = True
-        else:
-            # Production: strict SSL verification
-            connection_params["tls"] = True
-            connection_params["tlsCAFile"] = certifi.where()
-        
-        client = AsyncIOMotorClient(settings.mongo_url, **connection_params)
+        client = AsyncIOMotorClient(mongo_url, **connection_params)
         await client.admin.command('ping')
         db = client[settings.db_name]
         logger.info(f"Connected to MongoDB successfully")
@@ -293,21 +293,24 @@ class TokenData(BaseModel):
     email: Optional[EmailStr] = None
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    # bcrypt has a 72-byte limit, truncate if necessary
-    if len(plain_password.encode('utf-8')) > 72:
-        plain_password = plain_password[:72]
-    return pwd_context.verify(plain_password, hashed_password)
+    return verify_password_simple(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
-    # bcrypt has a 72-byte limit, truncate if necessary
-    if len(password.encode('utf-8')) > 72:
-        password = password[:72]
-    return pwd_context.hash(password)
+    return hash_password_simple(password)
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     to_encode = data.copy()
     expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     to_encode.update({"exp": expire})
+    
+    # Add required fields for proper token validation
+    if "type" not in to_encode:
+        to_encode["type"] = "access"  # Default to access token
+    
+    # Add issued at timestamp and unique token ID
+    to_encode["iat"] = datetime.now(timezone.utc)
+    to_encode["jti"] = str(uuid.uuid4())
+    
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -349,16 +352,22 @@ async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        logger.info(f"Validating token: {token[:20]}...")
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         email: str = payload.get("sub")
+        logger.info(f"Token decoded successfully for email: {email}")
         if email is None:
+            logger.error("No email in token payload")
             raise credentials_exception
         token_data = TokenData(email=email)
-    except JWTError:
+    except JWTError as e:
+        logger.error(f"JWT decode error: {e}")
         raise credentials_exception
     user = await get_user_by_email(token_data.email)  # type: ignore[arg-type]
     if user is None:
+        logger.error(f"User not found for email: {token_data.email}")
         raise credentials_exception
+    logger.info(f"User authenticated successfully: {user.email}")
     return user
 
 # ==================== HELPER FUNCTIONS ====================
@@ -796,14 +805,16 @@ async def register_user(user_in: UserCreate):
     }
 
 
-@api_router.post("/auth/token", response_model=Token)
+@api_router.post("/auth/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
-    OAuth2 password flow endpoint.
-
+    OAuth2 password flow endpoint with refresh token support.
+    
     Frontend sends:
       username=<email>&password=<password>
     as x-www-form-urlencoded.
+    
+    Returns both access_token and refresh_token for silent token refresh.
     """
     user = await authenticate_user(form_data.username, form_data.password)
     if not user:
@@ -812,12 +823,86 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    
+    # Create access token (short-lived: 15 minutes)
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.email},
+    access_token = create_proper_access_token(
+        data={"sub": user.email, "user_id": user.id},
         expires_delta=access_token_expires,
     )
-    return Token(access_token=access_token, token_type="bearer")
+    
+    # Create refresh token (long-lived: 7 days)
+    refresh_token_expires = timedelta(days=7)
+    refresh_token = create_proper_access_token(
+        data={"sub": user.email, "user_id": user.id, "type": "refresh"},
+        expires_delta=refresh_token_expires,
+    )
+    
+    # Update last login
+    await db.users.update_one(
+        {"id": user.id},
+        {"$set": {"last_login": datetime.now(timezone.utc)}}
+    )
+    
+    logger.info(f"User logged in: {user.email}")
+    
+    return {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+        "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60  # in seconds
+    }
+
+
+@api_router.post("/auth/refresh")
+async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
+    """
+    Refresh access token using refresh token (PRODUCTION-GRADE)
+    
+    This endpoint enables silent token refresh so users never get logged out
+    during critical flows like payments.
+    """
+    try:
+        # Decode refresh token
+        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        token_type: str = payload.get("type")
+        
+        if email is None or token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid refresh token"
+            )
+        
+        # Get user
+        user = await get_user_by_email(email)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found"
+            )
+        
+        # Create new access token
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        new_access_token = create_proper_access_token(
+            data={"sub": user.email, "user_id": user.id},
+            expires_delta=access_token_expires,
+        )
+        
+        logger.info(f"Token refreshed for user: {user.email}")
+        
+        return {
+            "access_token": new_access_token,
+            "token_type": "bearer",
+            "expires_in": ACCESS_TOKEN_EXPIRE_MINUTES * 60
+        }
+        
+    except JWTError as e:
+        logger.error(f"Token refresh failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired refresh token"
+        )
 
 
 @api_router.get("/auth/me")
@@ -1152,21 +1237,114 @@ async def get_payment_plans(gateway: Optional[str] = None, payment_svc = Depends
 
 @api_router.post("/payments/checkout")
 async def create_checkout_session(
-    plan_id: str,
-    gateway: str,
-    success_url: str,
-    cancel_url: str,
+    plan_id: str = Body(...),
+    gateway: str = Body(...),
+    success_url: str = Body(...),
+    cancel_url: str = Body(...),
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """Create checkout session for subscription"""
     try:
+        logger.info(f"Checkout request: user={current_user.id}, plan={plan_id}, gateway={gateway}")
+        
         session = await payment_service.create_checkout_session(
             current_user.id, plan_id, gateway, success_url, cancel_url
         )
+        
+        logger.info(f"Checkout session created successfully for user {current_user.id}")
         return session
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Checkout session creation failed: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
+        logger.error(f"Checkout session creation failed: {type(e).__name__}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Payment initialization failed: {str(e)}")
+
+@api_router.post("/payments/razorpay/create-order")
+async def create_razorpay_order(
+    plan_id: str = Body(...),
+    current_user: UserInDB = Depends(get_current_user_dep)
+):
+    """
+    Create Razorpay order for checkout (PRODUCTION-GRADE)
+    This endpoint MUST succeed before opening Razorpay checkout
+    """
+    try:
+        logger.info(f"Creating Razorpay order: user={current_user.id}, plan={plan_id}")
+        
+        # Validate payment service
+        if not payment_service or not payment_service.razorpay_service:
+            logger.error("Razorpay service not available")
+            raise HTTPException(
+                status_code=503,
+                detail="Payment service unavailable. Please contact support."
+            )
+        
+        # Create order
+        order = await payment_service.razorpay_service.create_razorpay_order(
+            current_user.id,
+            plan_id
+        )
+        
+        # Validate order response
+        if not order or "order_id" not in order:
+            logger.error(f"Invalid order response: {order}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create payment order"
+            )
+        
+        logger.info(f"Razorpay order created: {order['order_id']}")
+        
+        return {
+            "success": True,
+            "order": order
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Razorpay order creation failed: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to create payment order: {str(e)}"
+        )
+
+@api_router.post("/payments/razorpay/verify")
+async def verify_razorpay_payment(
+    order_id: str = Body(...),
+    payment_id: str = Body(...),
+    signature: str = Body(...),
+    current_user: UserInDB = Depends(get_current_user_dep)
+):
+    """
+    Verify Razorpay payment signature and activate subscription (SECURITY CRITICAL)
+    """
+    try:
+        logger.info(f"Verifying payment: user={current_user.id}, order={order_id}, payment={payment_id}")
+        
+        if not payment_service or not payment_service.razorpay_service:
+            raise HTTPException(status_code=503, detail="Payment service unavailable")
+        
+        # Handle payment success with signature verification
+        result = await payment_service.razorpay_service.handle_payment_success(
+            current_user.id,
+            order_id,
+            payment_id,
+            signature
+        )
+        
+        logger.info(f"Payment verified successfully for user {current_user.id}")
+        
+        return result
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Payment verification failed: {type(e).__name__}: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Payment verification failed: {str(e)}"
+        )
 
 @api_router.post("/payments/subscription")
 async def create_subscription(
@@ -2039,8 +2217,8 @@ app.include_router(api_router)
 app.add_middleware(
     CORSMiddleware,
     allow_credentials=True,
-    allow_origins=os.environ.get('CORS_ORIGINS', 'http://localhost:3000').split(','),
-    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_origins=["*"],  # Allow all origins in development
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 

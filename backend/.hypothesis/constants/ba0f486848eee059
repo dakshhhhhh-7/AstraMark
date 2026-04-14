@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\unified_payment_service.py
+# hypothesis_version: 6.151.10
+
+[400, 404, 503, 'EUR', 'GBP', 'Global', 'IN', 'INR', 'India', 'Malaysia', 'Razorpay', 'Singapore', 'Stripe', 'Stripe not available', 'USD', 'User not found', 'apple_pay', 'card', 'currencies', 'description', 'enabled', 'gateway', 'google_pay', 'id', 'is_premium', 'key_id', 'logo', 'message', 'methods', 'name', 'netbanking', 'plan', 'portal_url', 'public_key', 'razorpay', 'razorpay_customer_id', 'regions', 'status', 'stripe', 'stripe_customer_id', 'subscription_plan', 'subscription_status', 'updated_at', 'upi', 'wallet']

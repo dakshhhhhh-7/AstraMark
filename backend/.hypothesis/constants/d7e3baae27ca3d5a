@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_balance.py
+# hypothesis_version: 6.151.10
+
+['/v1/balance', 'Balance', 'available', 'balance', 'connect_reserved', 'instant_available', 'issuing', 'net_available', 'pending', 'source_types']

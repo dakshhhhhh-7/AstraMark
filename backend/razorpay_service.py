@@ -133,6 +133,211 @@ class RazorpayService:
             logger.error(f"Razorpay subscription creation failed: {e}")
             raise HTTPException(status_code=400, detail=str(e))
     
+    async def create_razorpay_order(
+        self, 
+        user_id: str, 
+        plan_id: str
+    ) -> Dict[str, Any]:
+        """
+        Create Razorpay order for checkout (PRODUCTION-GRADE)
+        Returns order object with id, amount, currency for frontend
+        """
+        if not self.is_enabled():
+            logger.error("Razorpay service not enabled")
+            raise HTTPException(
+                status_code=503, 
+                detail="Payment service unavailable. Please contact support."
+            )
+        
+        # Plan amounts in paise (1 INR = 100 paise)
+        amounts = {
+            "starter": 149900,  # ₹1499
+            "pro": 399900,      # ₹3999
+            "growth": 799900    # ₹7999
+        }
+        
+        if plan_id not in amounts:
+            logger.error(f"Invalid plan_id: {plan_id}")
+            raise HTTPException(status_code=400, detail="Invalid subscription plan")
+        
+        try:
+            # Fetch user details
+            user = await self.db.users.find_one({"id": user_id})
+            if not user:
+                logger.error(f"User not found: {user_id}")
+                raise HTTPException(status_code=404, detail="User not found")
+            
+            # Generate unique receipt ID
+            import uuid
+            receipt_id = f"rcpt_{plan_id}_{user_id[:8]}_{uuid.uuid4().hex[:8]}"
+            
+            # Create Razorpay order
+            order_data = {
+                "amount": amounts[plan_id],
+                "currency": "INR",
+                "receipt": receipt_id,
+                "notes": {
+                    "user_id": user_id,
+                    "plan_id": plan_id,
+                    "email": user["email"],
+                    "type": "subscription"
+                }
+            }
+            
+            logger.info(f"Creating Razorpay order for user {user_id}, plan {plan_id}")
+            order = self.client.order.create(data=order_data)
+            
+            # Validate order response
+            if not order or "id" not in order:
+                logger.error(f"Invalid order response from Razorpay: {order}")
+                raise HTTPException(
+                    status_code=500, 
+                    detail="Failed to create payment order. Please try again."
+                )
+            
+            logger.info(f"Razorpay order created successfully: {order['id']}")
+            
+            # Store order in database for verification later
+            await self.db.payment_orders.insert_one({
+                "order_id": order["id"],
+                "user_id": user_id,
+                "plan_id": plan_id,
+                "amount": amounts[plan_id],
+                "currency": "INR",
+                "status": "created",
+                "receipt": receipt_id,
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+            # Return complete order object for frontend
+            return {
+                "order_id": order["id"],
+                "amount": order["amount"],
+                "currency": order["currency"],
+                "key_id": settings.razorpay_key_id,  # Public key for frontend
+                "plan_id": plan_id,
+                "user_email": user["email"],
+                "user_name": user.get("full_name", user["email"].split('@')[0])
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Razorpay order creation failed: {type(e).__name__}: {str(e)}")
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Payment system error: {str(e)}"
+            )
+    
+    async def verify_payment_signature(
+        self,
+        order_id: str,
+        payment_id: str,
+        signature: str
+    ) -> bool:
+        """
+        Verify Razorpay payment signature (SECURITY CRITICAL)
+        """
+        if not self.is_enabled():
+            return False
+        
+        try:
+            # Generate expected signature
+            message = f"{order_id}|{payment_id}"
+            expected_signature = hmac.new(
+                settings.razorpay_key_secret.encode(),
+                message.encode(),
+                hashlib.sha256
+            ).hexdigest()
+            
+            # Compare signatures
+            is_valid = hmac.compare_digest(signature, expected_signature)
+            
+            if is_valid:
+                logger.info(f"Payment signature verified for order {order_id}")
+            else:
+                logger.error(f"Invalid payment signature for order {order_id}")
+            
+            return is_valid
+            
+        except Exception as e:
+            logger.error(f"Signature verification failed: {e}")
+            return False
+    
+    async def handle_payment_success(
+        self,
+        user_id: str,
+        order_id: str,
+        payment_id: str,
+        signature: str
+    ) -> Dict[str, Any]:
+        """
+        Handle successful payment after signature verification
+        """
+        try:
+            # Verify signature first
+            if not await self.verify_payment_signature(order_id, payment_id, signature):
+                raise HTTPException(status_code=400, detail="Invalid payment signature")
+            
+            # Get order details from database
+            order = await self.db.payment_orders.find_one({"order_id": order_id})
+            if not order:
+                raise HTTPException(status_code=404, detail="Order not found")
+            
+            # Update user subscription
+            await self.db.users.update_one(
+                {"id": user_id},
+                {
+                    "$set": {
+                        "is_premium": True,
+                        "subscription_plan": order["plan_id"],
+                        "subscription_status": "active",
+                        "razorpay_order_id": order_id,
+                        "razorpay_payment_id": payment_id,
+                        "subscription_updated_at": datetime.now(timezone.utc)
+                    }
+                }
+            )
+            
+            # Update order status
+            await self.db.payment_orders.update_one(
+                {"order_id": order_id},
+                {
+                    "$set": {
+                        "status": "paid",
+                        "payment_id": payment_id,
+                        "paid_at": datetime.now(timezone.utc)
+                    }
+                }
+            )
+            
+            # Log successful payment
+            await self.db.payments.insert_one({
+                "user_id": user_id,
+                "order_id": order_id,
+                "payment_id": payment_id,
+                "amount": order["amount"],
+                "currency": order["currency"],
+                "plan_id": order["plan_id"],
+                "status": "success",
+                "gateway": "razorpay",
+                "created_at": datetime.now(timezone.utc)
+            })
+            
+            logger.info(f"Payment successful for user {user_id}, order {order_id}")
+            
+            return {
+                "success": True,
+                "message": "Payment successful",
+                "plan": order["plan_id"]
+            }
+            
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"Payment success handling failed: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+    
     async def create_payment_link(
         self, 
         user_id: str, 

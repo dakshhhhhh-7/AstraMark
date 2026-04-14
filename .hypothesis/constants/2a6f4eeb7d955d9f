@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_price_service.py
+# hypothesis_version: 6.151.10
+
+['/v1/prices', '/v1/prices/search', '/v1/prices/{price}', 'V1', 'api', 'day', 'down', 'exclusive', 'get', 'graduated', 'inclusive', 'inf', 'last_during_period', 'last_ever', 'licensed', 'max', 'metered', 'month', 'one_time', 'per_unit', 'post', 'recurring', 'sum', 'tiered', 'unspecified', 'up', 'volume', 'week', 'year']

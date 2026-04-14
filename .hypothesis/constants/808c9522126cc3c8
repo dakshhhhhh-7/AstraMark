@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\treasury\_received_debit.py
+# hypothesis_version: 6.151.10
+
+['ReceivedDebit', 'Transaction', 'account_closed', 'account_frozen', 'ach', 'address', 'already_reversed', 'balance', 'billing_details', 'card', 'deadline_passed', 'failed', 'financial_account', 'get', 'insufficient_funds', 'issuing_card', 'linked_flows', 'network_restricted', 'other', 'payments', 'post', 'reversal_details', 'stripe', 'succeeded', 'us_bank_account']

@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\eth_account\typed_transactions\base.py
+# hypothesis_version: 6.151.10
+
+[b'\x01', 4096, 'accessList', 'address', 'authorizationList', 'blobVersionedHashes', 'blob_transactions', 'blobs', 'chainId', 'data', 'maxFeePerBlobGas', 'maxFeePerGas', 'maxPriorityFeePerGas', 'nonce', 'r', 's', 'storageKeys', 'type', 'yParity']

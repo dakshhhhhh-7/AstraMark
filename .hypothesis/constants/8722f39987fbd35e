@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\models.py
+# hypothesis_version: 6.151.10
+
+[100, 200, 500, 1000, '%H:%M:%S', '<', '>', 'active', 'additional_info', 'business_type', 'monthly_budget', 'primary_goal', 'script', 'target_market', '{', '}']

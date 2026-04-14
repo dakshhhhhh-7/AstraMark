@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\_file_service.py
+# hypothesis_version: 6.151.10
+
+['/v1/files', '/v1/files/{file}', 'V1', 'V1FILES', 'account_requirement', 'api', 'business_icon', 'business_logo', 'customer_signature', 'dispute_evidence', 'files', 'finance_report_run', 'get', 'identity_document', 'pci_document', 'post', 'selfie']

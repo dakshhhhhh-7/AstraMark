@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\issuing\_dispute_service.py
+# hypothesis_version: 6.151.10
+
+['/v1/issuing/disputes', "Literal['']|bool", "Literal['']|int", "Literal['']|str", 'V1', 'api', 'canceled', 'duplicate', 'expired', 'fraudulent', 'get', 'lost', 'not_received', 'other', 'post', 'submitted', 'unsubmitted', 'won']

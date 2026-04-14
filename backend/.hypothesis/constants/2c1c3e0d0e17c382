@@ -1,0 +1,4 @@
+# file: D:\AstraMark\backend\scanner_service.py
+# hypothesis_version: 6.151.10
+
+['Competitive', 'Competitor Monitor', 'Consumer', 'Market', 'Technology', '_id', 'business_id', 'business_type', 'competitor_monitor', 'competitors', 'created_at', 'detected_at', 'engagement_level', 'high', 'id', 'info', 'low', 'market_scanner', 'message', 'neutral', 'news_sentiment', 'overall_sentiment', 'positive', 'severity', 'signal_type', 'snapshot_at', 'social_discussions', 'target_market', 'technology_trends', 'total_results', 'true', 'type']

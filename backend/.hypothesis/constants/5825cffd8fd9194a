@@ -1,0 +1,4 @@
+# file: C:\Users\ASUS\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.10_qbz5n2kfra8p0\LocalCache\local-packages\Python310\site-packages\stripe\treasury\_received_credit.py
+# hypothesis_version: 6.151.10
+
+['CreditReversal', 'OutboundPayment', 'Payout', 'ReceivedCredit', 'Transaction', 'account_closed', 'account_frozen', 'ach', 'address', 'already_reversed', 'balance', 'billing_details', 'card', 'credit_reversal', 'deadline_passed', 'failed', 'financial_account', 'get', 'issuing_card', 'linked_flows', 'network_restricted', 'other', 'outbound_payment', 'payments', 'payout', 'post', 'reversal_details', 'source_flow_details', 'stripe', 'succeeded', 'us_bank_account', 'us_domestic_wire']

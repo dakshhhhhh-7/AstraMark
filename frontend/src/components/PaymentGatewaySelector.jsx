@@ -5,6 +5,8 @@ import { Badge } from './ui/badge';
 import { Check, CreditCard, Smartphone, Building, Globe } from 'lucide-react';
 import axios from 'axios';
 
+const BACKEND_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
 const PaymentGatewaySelector = ({ selectedPlan, onPaymentInitiate }) => {
   const [gateways, setGateways] = useState([]);
   const [plans, setPlans] = useState({});
@@ -18,8 +20,8 @@ const PaymentGatewaySelector = ({ selectedPlan, onPaymentInitiate }) => {
   const fetchPaymentData = async () => {
     try {
       const [gatewaysRes, plansRes] = await Promise.all([
-        axios.get('/api/payments/gateways'),
-        axios.get('/api/payments/plans')
+        axios.get(`${BACKEND_URL}/api/payments/gateways`),
+        axios.get(`${BACKEND_URL}/api/payments/plans`)
       ]);
       
       setGateways(gatewaysRes.data.gateways);
