@@ -345,31 +345,6 @@ async def authenticate_user(email: str, password: str) -> Optional[UserInDB]:
         return None
     return user
 
-async def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-    try:
-        logger.info(f"Validating token: {token[:20]}...")
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        logger.info(f"Token decoded successfully for email: {email}")
-        if email is None:
-            logger.error("No email in token payload")
-            raise credentials_exception
-        token_data = TokenData(email=email)
-    except JWTError as e:
-        logger.error(f"JWT decode error: {e}")
-        raise credentials_exception
-    user = await get_user_by_email(token_data.email)  # type: ignore[arg-type]
-    if user is None:
-        logger.error(f"User not found for email: {token_data.email}")
-        raise credentials_exception
-    logger.info(f"User authenticated successfully: {user.email}")
-    return user
-
 # ==================== HELPER FUNCTIONS ====================
 async def generate_market_analysis_with_live_data(business: BusinessInput) -> Dict[str, Any]:
     """Generate comprehensive market analysis using AI + live market data"""
@@ -831,12 +806,9 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         expires_delta=access_token_expires,
     )
     
-    # Create refresh token (long-lived: 7 days)
-    refresh_token_expires = timedelta(days=7)
-    refresh_token = create_proper_access_token(
-        data={"sub": user.email, "user_id": user.id, "type": "refresh"},
-        expires_delta=refresh_token_expires,
-    )
+    # Create refresh token (long-lived: 7 days) - Import from auth_service
+    from auth_service import create_refresh_token
+    refresh_token = create_refresh_token(user.id)
     
     # Update last login
     await db.users.update_one(
@@ -863,24 +835,39 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
     during critical flows like payments.
     """
     try:
-        # Decode refresh token
-        payload = jwt.decode(refresh_token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
+        # Decode refresh token using REFRESH_SECRET_KEY
+        payload = jwt.decode(refresh_token, REFRESH_SECRET_KEY, algorithms=[ALGORITHM])
+        user_id: str = payload.get("sub")  # Refresh token has user_id in sub
         token_type: str = payload.get("type")
         
-        if email is None or token_type != "refresh":
+        if user_id is None or token_type != "refresh":
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid refresh token"
             )
         
-        # Get user
-        user = await get_user_by_email(email)
-        if user is None:
+        # Get user by ID (not email)
+        user_doc = await db.users.find_one({"id": user_id})
+        if not user_doc:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="User not found"
             )
+        
+        # Convert to UserInDB
+        created_at = user_doc.get("created_at")
+        if isinstance(created_at, str):
+            created_at = datetime.fromisoformat(created_at)
+        elif created_at is None:
+            created_at = datetime.now(timezone.utc)
+            
+        user = UserInDB(
+            id=str(user_doc.get("id") or user_doc.get("_id")),
+            email=user_doc["email"],
+            full_name=user_doc.get("full_name"),
+            hashed_password=user_doc["hashed_password"],
+            created_at=created_at
+        )
         
         # Create new access token
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
@@ -906,7 +893,7 @@ async def refresh_access_token(refresh_token: str = Body(..., embed=True)):
 
 
 @api_router.get("/auth/me")
-async def read_current_user(current_user: UserInDB = Depends(get_current_user)):
+async def read_current_user(current_user: UserInDB = Depends(get_current_user_dep)):
     """Return the currently authenticated user's public profile."""
     return {
         "id": current_user.id,
@@ -1261,7 +1248,7 @@ async def create_checkout_session(
 
 @api_router.post("/payments/razorpay/create-order")
 async def create_razorpay_order(
-    plan_id: str = Body(...),
+    request_body: Dict[str, Any] = Body(...),
     current_user: UserInDB = Depends(get_current_user_dep)
 ):
     """
@@ -1269,6 +1256,13 @@ async def create_razorpay_order(
     This endpoint MUST succeed before opening Razorpay checkout
     """
     try:
+        plan_id = request_body.get("plan_id")
+        if not plan_id:
+            raise HTTPException(
+                status_code=400,
+                detail="plan_id is required"
+            )
+            
         logger.info(f"Creating Razorpay order: user={current_user.id}, plan={plan_id}")
         
         # Validate payment service
