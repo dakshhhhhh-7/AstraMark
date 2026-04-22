@@ -159,7 +159,7 @@ export function Dashboard() {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Action Panel */}
             <motion.div variants={staggerItem}>
-              <Card variant="glass">
+              <Card variant="glass" className="h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Rocket className="h-5 w-5 text-primary" />
@@ -191,7 +191,7 @@ export function Dashboard() {
 
             {/* Live Feed */}
             <motion.div variants={staggerItem}>
-              <Card variant="glass">
+              <Card variant="glass" className="h-full">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Bell className="h-5 w-5 text-accent" />
@@ -225,7 +225,7 @@ export function Dashboard() {
             </motion.div>
 
             {/* AI Chat Panel */}
-            <motion.div variants={staggerItem} className="lg:row-span-2">
+            <motion.div variants={staggerItem}>
               <div className="h-[600px]">
                 <AIChatPanel />
               </div>
