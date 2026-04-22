@@ -9,6 +9,7 @@ import { AnimatedButton } from '@/components/ui/animated-button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 import { Switch } from '@/components/ui/switch';
+import { AIChatPanel } from '@/components/AIChatPanel';
 import { fadeInUp, staggerContainer, staggerItem } from '@/lib/animations';
 import {
   DollarSign, Users, TrendingUp, Zap, Sparkles, Target,
@@ -154,10 +155,10 @@ export function Dashboard() {
             </div>
           </motion.div>
 
-          {/* Action Panel & Live Feed */}
+          {/* Action Panel & Live Feed & AI Chat */}
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Action Panel */}
-            <motion.div variants={staggerItem} className="lg:col-span-2">
+            <motion.div variants={staggerItem}>
               <Card variant="glass">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -221,6 +222,13 @@ export function Dashboard() {
                   ))}
                 </CardContent>
               </Card>
+            </motion.div>
+
+            {/* AI Chat Panel */}
+            <motion.div variants={staggerItem} className="lg:row-span-2">
+              <div className="h-[600px]">
+                <AIChatPanel />
+              </div>
             </motion.div>
           </div>
 
