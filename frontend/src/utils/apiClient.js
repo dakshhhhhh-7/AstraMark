@@ -172,11 +172,10 @@ apiClient.interceptors.response.use(
             return Promise.reject(error);
         }
 
-        // Don't retry auth endpoints (including /auth/me which is just a check)
+        // Don't retry auth endpoints (but ALLOW /auth/me to refresh)
         if (originalRequest.url?.includes('/auth/token') || 
             originalRequest.url?.includes('/auth/register') ||
-            originalRequest.url?.includes('/auth/refresh') ||
-            originalRequest.url?.includes('/auth/me')) {
+            originalRequest.url?.includes('/auth/refresh')) {
             return Promise.reject(error);
         }
 

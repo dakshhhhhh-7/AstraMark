@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,15 @@ function RegisterPage() {
         fullName: ''
     });
     const [isLoading, setIsLoading] = useState(false);
-    const { register } = useAuth();
+    const { register, user } = useAuth();
     const navigate = useNavigate();
+
+    // Redirect to dashboard if already logged in
+    useEffect(() => {
+        if (user) {
+            navigate('/dashboard');
+        }
+    }, [user, navigate]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.id]: e.target.value });
