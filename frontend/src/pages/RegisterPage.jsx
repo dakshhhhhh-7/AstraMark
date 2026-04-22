@@ -9,7 +9,7 @@ import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 import { safeErrorMessage } from '@/utils/safeRender';
 
-export function RegisterPage() {
+function RegisterPage() {
     const [formData, setFormData] = useState({
         email: '',
         password: '',
@@ -135,3 +135,5 @@ export function RegisterPage() {
         </div>
     );
 }
+
+export default RegisterPage;
