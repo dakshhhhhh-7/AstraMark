@@ -2,7 +2,6 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { useInView } from 'react-intersection-observer';
-import { useAuth } from '@/contexts/AuthContext';
 import { AnimatedButton } from '@/components/ui/animated-button';
 import { MetricCard, AnimatedCounter } from '@/components/ui/animated-counter';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
@@ -20,14 +19,6 @@ import {
  */
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
-
-  // Redirect to dashboard if already logged in
-  React.useEffect(() => {
-    if (user) {
-      navigate('/dashboard');
-    }
-  }, [user, navigate]);
 
   return (
     <div className="min-h-screen bg-background">

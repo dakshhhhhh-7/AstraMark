@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstraMark Route Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #0f172a;
+            color: #fff;
+        }
+        h1 {
+            color: #a855f7;
+        }
+        .test-section {
+            background: #1e293b;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            border: 1px solid #334155;
+        }
+        button {
+            background: #6366f1;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        button:hover {
+            background: #4f46e5;
+        }
+        .success {
+            color: #22c55e;
+        }
+        .error {
+            color: #ef4444;
+        }
+        .info {
+            color: #3b82f6;
+        }
+        #results {
+            margin-top: 20px;
+            padding: 15px;
+            background: #0f172a;
+            border-radius: 5px;
+            border: 1px solid #334155;
+        }
+        .result-item {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid #6366f1;
+            padding-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 AstraMark Route Tester</h1>
+    
+    <div class="test-section">
+        <h2>Step 1: Clear Storage</h2>
+        <p>Clear all tokens and start fresh</p>
+        <button onclick="clearStorage()">Clear Storage</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 2: Test Public Routes (Not Logged In)</h2>
+        <p>These should all work without authentication:</p>
+        <button onclick="testRoute('/')">Test Landing Page (/)</button>
+        <button onclick="testRoute('/login')">Test Login Page</button>
+        <button onclick="testRoute('/register')">Test Register Page</button>
+        <button onclick="testRoute('/pricing')">Test Pricing Page</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 3: Register & Login</h2>
+        <p>Create an account and login:</p>
+        <button onclick="openInNewTab('/register')">Open Register Page</button>
+        <button onclick="openInNewTab('/login')">Open Login Page</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 4: Test Protected Routes (After Login)</h2>
+        <p>These require authentication:</p>
+        <button onclick="testRoute('/dashboard')">Test Dashboard</button>
+        <button onclick="testRoute('/onboarding')">Test Onboarding</button>
+        <button onclick="testRoute('/settings')">Test Settings</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 5: Check Auth Status</h2>
+        <button onclick="checkAuthStatus()">Check Current Auth Status</button>
+        <button onclick="testLogout()">Test Logout</button>
+    </div>
+
+    <div id="results">
+        <h3>Test Results:</h3>
+        <div id="result-list"></div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8001';
+        const FRONTEND_URL = 'http://localhost:3000';
+
+        function addResult(message, type = 'info') {
+            const resultList = document.getElementById('result-list');
+            const item = document.createElement('div');
+            item.className = `result-item ${type}`;
+            item.innerHTML = `[${new Date().toLocaleTimeString()}] ${message}`;
+            resultList.insertBefore(item, resultList.firstChild);
+        }
+
+        function clearStorage() {
+            localStorage.clear();
+            sessionStorage.clear();
+            addResult('✅ Storage cleared successfully', 'success');
+        }
+
+        function testRoute(route) {
+            addResult(`🔍 Testing route: ${route}`, 'info');
+            window.open(FRONTEND_URL + route, '_blank');
+        }
+
+        function openInNewTab(route) {
+            window.open(FRONTEND_URL + route, '_blank');
+            addResult(`🔗 Opened ${route} in new tab`, 'info');
+        }
+
+        async function checkAuthStatus() {
+            const token = localStorage.getItem('user_token');
+            
+            if (!token) {
+                addResult('❌ No token found - User is NOT logged in', 'error');
+                return;
+            }
+
+            addResult('🔑 Token found in localStorage', 'success');
+
+            try {
+                const response = await fetch(`${API_URL}/api/auth/me`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    const user = await response.json();
+                    addResult(`✅ User is logged in: ${user.email}`, 'success');
+                } else {
+                    addResult(`❌ Token is invalid (${response.status})`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Error checking auth: ${error.message}`, 'error');
+            }
+        }
+
+        function testLogout() {
+            clearStorage();
+            addResult('🚪 Logged out - storage cleared', 'success');
+            addResult('🔄 Refresh the frontend to see the change', 'info');
+        }
+
+        // Initial message
+        addResult('👋 Welcome to AstraMark Route Tester!', 'success');
+        addResult('📝 Follow the steps above to test the application', 'info');
+    </script>
+</body>
+</html>
