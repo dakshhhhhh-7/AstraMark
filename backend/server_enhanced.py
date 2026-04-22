@@ -901,6 +901,179 @@ async def read_current_user(current_user: UserInDB = Depends(get_current_user_de
         "full_name": current_user.full_name,
     }
 
+# ---------- AI Chat Endpoints ----------
+
+class ChatMessage(BaseModel):
+    message: str = Field(..., min_length=1, max_length=5000)
+    history: Optional[List[Dict[str, Any]]] = []
+    budget: Optional[float] = None
+    currency: Optional[str] = "INR"
+
+class ChatResponse(BaseModel):
+    response: str
+    analysis_data: Optional[Dict[str, Any]] = None
+    report_available: bool = False
+
+@api_router.post("/ai/chat", response_model=ChatResponse)
+@limiter.limit("20/minute")
+async def ai_chat(
+    request: Request,
+    chat_input: ChatMessage,
+    current_user: UserInDB = Depends(get_current_user_dep)
+):
+    """
+    AI Chat endpoint for business analysis with market research, budget planning, and profit/loss projections
+    """
+    try:
+        if not groq_service.is_available():
+            raise HTTPException(status_code=503, detail="AI service temporarily unavailable")
+        
+        # Build conversation context
+        conversation_history = chat_input.history[-5:] if chat_input.history else []
+        
+        # System prompt for business analysis
+        system_prompt = """You are AstraMark AI, an expert business analyst and market researcher.
+
+Your capabilities:
+- Comprehensive market research and competitor analysis
+- Budget planning and financial projections
+- Profit/loss analysis and ROI calculations
+- Revenue forecasting
+- Risk assessment
+- Growth strategy recommendations
+
+When a user describes a business idea:
+1. Ask clarifying questions if needed (industry, target market, location, etc.)
+2. Provide market insights and competitor analysis
+3. If they mention a budget, create detailed budget breakdown
+4. Generate profit/loss projections
+5. Assess risks and opportunities
+6. Provide actionable recommendations
+
+Be conversational, professional, and data-driven. Use specific numbers and percentages when possible.
+Format responses clearly with bullet points and sections."""
+
+        # Build the prompt with context
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add conversation history
+        for msg in conversation_history:
+            messages.append({
+                "role": msg.get("role", "user"),
+                "content": msg.get("content", "")
+            })
+        
+        # Add current message with budget context if provided
+        user_message = chat_input.message
+        if chat_input.budget:
+            user_message += f"\n\n[Budget: {chat_input.currency} {chat_input.budget:,.2f}]"
+        
+        messages.append({"role": "user", "content": user_message})
+        
+        # Call Groq AI
+        response = groq_service.client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.7,
+            max_tokens=2000
+        )
+        
+        ai_response = response.choices[0].message.content
+        
+        # Check if this is a complete business analysis request
+        is_analysis_request = any(keyword in chat_input.message.lower() for keyword in [
+            "analyze", "analysis", "market research", "business plan", "feasibility",
+            "profit", "loss", "revenue", "forecast", "projection"
+        ])
+        
+        analysis_data = None
+        report_available = False
+        
+        # If it's an analysis request with budget, generate detailed analysis
+        if is_analysis_request and chat_input.budget:
+            try:
+                # Extract business details from conversation
+                business_type = "General Business"  # TODO: Extract from conversation
+                target_market = "General Market"  # TODO: Extract from conversation
+                
+                # Perform market research using existing services
+                competitor_data = await apify_market_service.search_competitors(
+                    business_type,
+                    target_market
+                )
+                
+                # Generate budget breakdown
+                budget_breakdown = {
+                    "total_budget": chat_input.budget,
+                    "currency": chat_input.currency,
+                    "allocations": {
+                        "marketing": chat_input.budget * 0.25,
+                        "operations": chat_input.budget * 0.30,
+                        "technology": chat_input.budget * 0.15,
+                        "staffing": chat_input.budget * 0.20,
+                        "contingency": chat_input.budget * 0.10
+                    }
+                }
+                
+                # Generate financial projections
+                monthly_revenue_projection = chat_input.budget * 0.15  # 15% monthly return estimate
+                yearly_revenue = monthly_revenue_projection * 12
+                yearly_costs = chat_input.budget * 0.60  # 60% of budget as yearly costs
+                yearly_profit = yearly_revenue - yearly_costs
+                roi_percentage = (yearly_profit / chat_input.budget) * 100
+                
+                analysis_data = {
+                    "budget_breakdown": budget_breakdown,
+                    "financial_projections": {
+                        "monthly_revenue": monthly_revenue_projection,
+                        "yearly_revenue": yearly_revenue,
+                        "yearly_costs": yearly_costs,
+                        "yearly_profit": yearly_profit,
+                        "roi_percentage": roi_percentage,
+                        "break_even_months": int(chat_input.budget / monthly_revenue_projection) if monthly_revenue_projection > 0 else 12
+                    },
+                    "competitor_count": len(competitor_data.get("competitors", [])),
+                    "market_opportunity": "Medium to High"  # TODO: Calculate based on real data
+                }
+                
+                report_available = True
+                
+                # Enhance AI response with analysis data
+                ai_response += f"\n\n📊 **Analysis Summary:**\n"
+                ai_response += f"- Budget: {chat_input.currency} {chat_input.budget:,.2f}\n"
+                ai_response += f"- Projected Monthly Revenue: {chat_input.currency} {monthly_revenue_projection:,.2f}\n"
+                ai_response += f"- Projected Yearly Profit: {chat_input.currency} {yearly_profit:,.2f}\n"
+                ai_response += f"- ROI: {roi_percentage:.1f}%\n"
+                ai_response += f"- Break-even: {analysis_data['financial_projections']['break_even_months']} months\n"
+                ai_response += f"- Competitors Found: {analysis_data['competitor_count']}\n\n"
+                ai_response += "💡 A detailed report is available for download!"
+                
+            except Exception as e:
+                logger.error(f"Error generating analysis data: {e}")
+                # Continue with AI response even if analysis fails
+        
+        # Save chat interaction to database
+        chat_doc = {
+            "user_id": current_user.id,
+            "message": chat_input.message,
+            "response": ai_response,
+            "budget": chat_input.budget,
+            "currency": chat_input.currency,
+            "analysis_data": analysis_data,
+            "timestamp": datetime.now(timezone.utc).isoformat()
+        }
+        await db.chat_history.insert_one(chat_doc)
+        
+        return ChatResponse(
+            response=ai_response,
+            analysis_data=analysis_data,
+            report_available=report_available
+        )
+        
+    except Exception as e:
+        logger.error(f"AI chat error: {e}")
+        raise HTTPException(status_code=500, detail=f"AI chat failed: {str(e)}")
+
 @api_router.post("/analyze", response_model=AnalysisResult)
 @limiter.limit("5/minute")
 async def analyze_business(request: Request, business_input: BusinessInput, premium: bool = False, background_tasks: BackgroundTasks = None):
