@@ -86,7 +86,7 @@ export function Dashboard() {
           {/* Welcome Section */}
           <motion.div variants={staggerItem}>
             <h1 className="text-3xl md:text-4xl font-bold mb-2">
-              Welcome back, {user?.name || 'User'}! 👋
+              Welcome back, {user?.full_name || user?.name || 'User'}! 👋
             </h1>
             <p className="text-muted-foreground">
               Here's your growth overview for this week

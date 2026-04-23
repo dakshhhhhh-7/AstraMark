@@ -22,6 +22,8 @@ const PricingPage = lazy(() => import('@/pages/PricingPage'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const OnboardingPage = lazy(() => import('@/pages/OnboardingPage'));
 const SettingsPage = lazy(() => import('@/pages/SettingsPage'));
+const AnalysisPage = lazy(() => import('@/pages/AnalysisPage'));
+const CheckoutPage = lazy(() => import('@/pages/CheckoutPage'));
 
 // Test page (development only)
 const TestPage = lazy(() => import('@/pages/TestPage'));
@@ -49,6 +51,8 @@ function App() {
                 {/* Protected routes */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/analysis" element={<AnalysisPage />} />
+                  <Route path="/checkout" element={<CheckoutPage />} />
                   <Route path="/onboarding" element={<OnboardingPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>

@@ -41,6 +41,7 @@ export const Header = ({ transparent = false }) => {
   const navLinks = isAuthenticated
     ? [
         { label: 'Dashboard', path: '/dashboard' },
+        { label: 'Analysis', path: '/analysis' },
         { label: 'Pricing', path: '/pricing' },
       ]
     : [

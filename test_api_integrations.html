@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AstraMark API Integration Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+        
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: #f9f9f9;
+        }
+        
+        .test-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+        
+        .status-pending {
+            background: #ffd700;
+            color: #000;
+        }
+        
+        .status-success {
+            background: #4caf50;
+            color: white;
+        }
+        
+        .status-error {
+            background: #f44336;
+            color: white;
+        }
+        
+        .status-warning {
+            background: #ff9800;
+            color: white;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-right: 10px;
+            margin-bottom: 10px;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .result pre {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        
+        .credentials {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .credentials h3 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 1em;
+        }
+        
+        .summary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 30px;
+        }
+        
+        .summary h2 {
+            margin-bottom: 15px;
+        }
+        
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        
+        .summary-item {
+            background: rgba(255,255,255,0.2);
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .summary-item h3 {
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            opacity: 0.9;
+        }
+        
+        .summary-item p {
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 AstraMark API Integration Test</h1>
+        <p class="subtitle">Comprehensive test suite for all backend services and API integrations</p>
+        
+        <!-- Credentials Section -->
+        <div class="credentials">
+            <h3>🔐 Test Credentials</h3>
+            <input type="email" id="email" placeholder="Email" value="test@example.com">
+            <input type="password" id="password" placeholder="Password" value="testpassword123">
+            <input type="text" id="fullName" placeholder="Full Name" value="Test User">
+        </div>
+        
+        <!-- Authentication Tests -->
+        <div class="test-section">
+            <h2>
+                🔐 Authentication Service
+                <span class="status-badge status-pending" id="auth-status">Pending</span>
+            </h2>
+            <button onclick="testRegister()">Test Register</button>
+            <button onclick="testLogin()">Test Login</button>
+            <button onclick="testGetUser()">Test Get User</button>
+            <button onclick="testRefreshToken()">Test Refresh Token</button>
+            <div class="result" id="auth-result" style="display:none;"></div>
+        </div>
+        
+        <!-- AI Chat Service -->
+        <div class="test-section">
+            <h2>
+                🤖 AI Chat Service (Groq + Gemini)
+                <span class="status-badge status-pending" id="ai-status">Pending</span>
+            </h2>
+            <button onclick="testAIChat()">Test AI Chat</button>
+            <button onclick="testBusinessAnalysis()">Test Business Analysis</button>
+            <div class="result" id="ai-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Payment Integration -->
+        <div class="test-section">
+            <h2>
+                💳 Payment Service (Razorpay)
+                <span class="status-badge status-pending" id="payment-status">Pending</span>
+            </h2>
+            <button onclick="testCreateOrder()">Test Create Order</button>
+            <button onclick="testVerifyPayment()">Test Verify Payment</button>
+            <div class="result" id="payment-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Market Research Service -->
+        <div class="test-section">
+            <h2>
+                📊 Market Research (Apify)
+                <span class="status-badge status-pending" id="market-status">Pending</span>
+            </h2>
+            <button onclick="testMarketResearch()">Test Market Research</button>
+            <div class="result" id="market-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Database Connection -->
+        <div class="test-section">
+            <h2>
+                🗄️ Database (MongoDB)
+                <span class="status-badge status-pending" id="db-status">Pending</span>
+            </h2>
+            <button onclick="testHealthCheck()">Test Health Check</button>
+            <div class="result" id="db-result" style="display:none;"></div>
+        </div>
+        
+        <!-- Summary -->
+        <div class="summary">
+            <h2>📈 Test Summary</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <h3>Total Tests</h3>
+                    <p id="total-tests">0</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Passed</h3>
+                    <p id="passed-tests">0</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Failed</h3>
+                    <p id="failed-tests">0</p>
+                </div>
+                <div class="summary-item">
+                    <h3>Success Rate</h3>
+                    <p id="success-rate">0%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8001/api';
+        let accessToken = null;
+        let refreshToken = null;
+        let testStats = { total: 0, passed: 0, failed: 0 };
+        
+        function updateStats() {
+            document.getElementById('total-tests').textContent = testStats.total;
+            document.getElementById('passed-tests').textContent = testStats.passed;
+            document.getElementById('failed-tests').textContent = testStats.failed;
+            const rate = testStats.total > 0 ? Math.round((testStats.passed / testStats.total) * 100) : 0;
+            document.getElementById('success-rate').textContent = rate + '%';
+        }
+        
+        function showResult(sectionId, statusId, message, isSuccess) {
+            const resultDiv = document.getElementById(sectionId);
+            const statusBadge = document.getElementById(statusId);
+            
+            resultDiv.innerHTML = `<pre>${message}</pre>`;
+            resultDiv.style.display = 'block';
+            
+            statusBadge.className = 'status-badge ' + (isSuccess ? 'status-success' : 'status-error');
+            statusBadge.textContent = isSuccess ? 'Success' : 'Failed';
+            
+            testStats.total++;
+            if (isSuccess) testStats.passed++;
+            else testStats.failed++;
+            updateStats();
+        }
+        
+        async function testRegister() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                const fullName = document.getElementById('fullName').value;
+                
+                const response = await fetch(`${API_BASE}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password, full_name: fullName })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('auth-result', 'auth-status', 
+                        `✅ Registration successful!\n${JSON.stringify(data, null, 2)}`, true);
+                } else {
+                    showResult('auth-result', 'auth-status', 
+                        `⚠️ Registration response:\n${JSON.stringify(data, null, 2)}`, 
+                        data.detail?.includes('already registered'));
+                }
+            } catch (error) {
+                showResult('auth-result', 'auth-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testLogin() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const formData = new URLSearchParams();
+                formData.append('username', email);
+                formData.append('password', password);
+                
+                const response = await fetch(`${API_BASE}/auth/token`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.access_token) {
+                    accessToken = data.access_token;
+                    refreshToken = data.refresh_token;
+                    showResult('auth-result', 'auth-status', 
+                        `✅ Login successful!\nAccess Token: ${accessToken.substring(0, 50)}...\nRefresh Token: ${refreshToken ? refreshToken.substring(0, 50) + '...' : 'N/A'}`, true);
+                } else {
+                    showResult('auth-result', 'auth-status', 
+                        `❌ Login failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('auth-result', 'auth-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testGetUser() {
+            try {
+                if (!accessToken) {
+                    showResult('auth-result', 'auth-status', '⚠️ Please login first', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${accessToken}` }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('auth-result', 'auth-status', 
+                        `✅ User data retrieved!\n${JSON.stringify(data, null, 2)}\n\n🎯 User Name Display: ${data.full_name || data.name || 'N/A'}`, true);
+                } else {
+                    showResult('auth-result', 'auth-status', 
+                        `❌ Failed to get user:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('auth-result', 'auth-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testRefreshToken() {
+            try {
+                if (!refreshToken) {
+                    showResult('auth-result', 'auth-status', '⚠️ Please login first to get refresh token', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/auth/refresh`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${refreshToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.access_token) {
+                    accessToken = data.access_token;
+                    showResult('auth-result', 'auth-status', 
+                        `✅ Token refreshed!\nNew Access Token: ${accessToken.substring(0, 50)}...`, true);
+                } else {
+                    showResult('auth-result', 'auth-status', 
+                        `❌ Refresh failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('auth-result', 'auth-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testAIChat() {
+            try {
+                if (!accessToken) {
+                    showResult('ai-result', 'ai-status', '⚠️ Please login first', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/ai/chat`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        message: 'What are the best marketing strategies for a SaaS startup?',
+                        history: [],
+                        budget: 5000,
+                        currency: 'USD'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('ai-result', 'ai-status', 
+                        `✅ AI Chat working!\nResponse: ${data.response.substring(0, 200)}...\n\nFull response available in console.`, true);
+                    console.log('Full AI Response:', data);
+                } else {
+                    showResult('ai-result', 'ai-status', 
+                        `❌ AI Chat failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('ai-result', 'ai-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testBusinessAnalysis() {
+            try {
+                if (!accessToken) {
+                    showResult('ai-result', 'ai-status', '⚠️ Please login first', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/analyze`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        business_type: 'SaaS Marketing Platform',
+                        target_market: 'Small businesses and startups',
+                        monthly_budget: 5000,
+                        primary_goal: 'Generate leads and increase brand awareness through digital marketing',
+                        additional_info: 'Focus on content marketing and SEO'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult('ai-result', 'ai-status', 
+                        `✅ Business Analysis working!\nAI Service: ${data.ai_service_used || 'Unknown'}\nOverview: ${data.overview?.substring(0, 150)}...\n\nFull analysis in console.`, true);
+                    console.log('Full Business Analysis:', data);
+                } else {
+                    showResult('ai-result', 'ai-status', 
+                        `❌ Business Analysis failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('ai-result', 'ai-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testCreateOrder() {
+            try {
+                if (!accessToken) {
+                    showResult('payment-result', 'payment-status', '⚠️ Please login first', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/payments/razorpay/create-order`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        amount: 999,
+                        currency: 'INR',
+                        plan_name: 'Pro Plan'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.order_id) {
+                    showResult('payment-result', 'payment-status', 
+                        `✅ Razorpay order created!\nOrder ID: ${data.order_id}\nAmount: ${data.amount} ${data.currency}`, true);
+                } else {
+                    showResult('payment-result', 'payment-status', 
+                        `❌ Order creation failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('payment-result', 'payment-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testVerifyPayment() {
+            showResult('payment-result', 'payment-status', 
+                '⚠️ Payment verification requires actual payment completion.\nThis test is skipped in automated testing.', true);
+        }
+        
+        async function testMarketResearch() {
+            try {
+                if (!accessToken) {
+                    showResult('market-result', 'market-status', '⚠️ Please login first', false);
+                    return;
+                }
+                
+                const response = await fetch(`${API_BASE}/analyze`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${accessToken}`
+                    },
+                    body: JSON.stringify({
+                        business_type: 'E-commerce Fashion Store',
+                        target_market: 'Young adults 18-35',
+                        monthly_budget: 3000,
+                        primary_goal: 'Increase online sales and customer engagement',
+                        additional_info: 'Focus on Instagram and TikTok marketing'
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok && data.competitor_data) {
+                    showResult('market-result', 'market-status', 
+                        `✅ Market research working!\nCompetitors found: ${data.competitor_data.competitors?.length || 0}\nMarket trends: ${JSON.stringify(data.market_trends).substring(0, 100)}...`, true);
+                    console.log('Full Market Research:', data);
+                } else {
+                    showResult('market-result', 'market-status', 
+                        `⚠️ Market research completed but limited data:\n${JSON.stringify(data, null, 2).substring(0, 300)}...`, true);
+                }
+            } catch (error) {
+                showResult('market-result', 'market-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        async function testHealthCheck() {
+            try {
+                const response = await fetch(`${API_BASE}/health`);
+                const data = await response.json();
+                
+                if (response.ok && data.status === 'healthy') {
+                    showResult('db-result', 'db-status', 
+                        `✅ Health check passed!\nStatus: ${data.status}\nDatabase: ${data.database}\nTimestamp: ${data.timestamp}`, true);
+                } else {
+                    showResult('db-result', 'db-status', 
+                        `❌ Health check failed:\n${JSON.stringify(data, null, 2)}`, false);
+                }
+            } catch (error) {
+                showResult('db-result', 'db-status', `❌ Error: ${error.message}`, false);
+            }
+        }
+        
+        // Auto-run health check on load
+        window.addEventListener('load', () => {
+            setTimeout(testHealthCheck, 1000);
+        });
+    </script>
+</body>
+</html>

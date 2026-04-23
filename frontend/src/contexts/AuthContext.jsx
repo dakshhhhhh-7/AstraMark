@@ -1,16 +1,21 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { authService } from '@/services/authService';
 import { getAccessToken, initializeTokens } from '@/utils/apiClient';
+import { useUserStore } from '@/lib/store';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    
+    // Get Zustand store actions
+    const { setUser: setStoreUser, logout: logoutStore } = useUserStore();
 
     const logout = () => {
         authService.logout();
         setUser(null);
+        logoutStore(); // Also clear Zustand store
     };
 
     useEffect(() => {
@@ -26,6 +31,7 @@ export const AuthProvider = ({ children }) => {
                 if (!token) {
                     console.log('⚠️ No token found, user not logged in');
                     setUser(null);
+                    setStoreUser(null); // Sync with Zustand
                     setLoading(false);
                     return;
                 }
@@ -38,25 +44,29 @@ export const AuthProvider = ({ children }) => {
                 if (currentUser) {
                     console.log('✅ User authenticated:', currentUser.email);
                     setUser(currentUser);
+                    setStoreUser(currentUser); // Sync with Zustand
                 } else {
                     console.log('⚠️ Failed to get user, clearing auth state');
                     setUser(null);
+                    setStoreUser(null); // Sync with Zustand
                 }
             } catch (error) {
                 console.error('❌ Auth initialization failed:', error);
                 setUser(null);
+                setStoreUser(null); // Sync with Zustand
             } finally {
                 setLoading(false);
             }
         };
         
         initAuth();
-    }, []);
+    }, [setStoreUser]);
 
     const login = async (email, password) => {
         const data = await authService.login(email, password);
         const currentUser = await authService.getCurrentUser();
         setUser(currentUser);
+        setStoreUser(currentUser); // Sync with Zustand
         return data;
     };
 
@@ -65,7 +75,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, register, logout, loading }}>
+        <AuthContext.Provider value={{ user, login, register, logout, loading, isAuthenticated: !!user }}>
             {children}
         </AuthContext.Provider>
     );

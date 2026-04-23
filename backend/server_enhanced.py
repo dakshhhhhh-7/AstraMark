@@ -1464,7 +1464,8 @@ async def create_razorpay_order(
         
         return {
             "success": True,
-            "order": order
+            "order": order,
+            "razorpay_key": order.get("key_id")  # Pass the Razorpay public key to frontend
         }
         
     except HTTPException:
