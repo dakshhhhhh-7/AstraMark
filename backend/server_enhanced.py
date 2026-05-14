@@ -56,6 +56,9 @@ from conversion_optimization_ai import ConversionOptimizationAI
 from lead_funnel_automator import LeadFunnelAutomator
 from competitor_hijacking_engine import CompetitorHijackingEngine
 
+# Import business analysis router
+from business_analysis_router import router as business_analysis_router
+
 # Import models
 from models import (
     BusinessInput, BusinessProfile, MarketAnalysis, UserPersona, AIInsight,
@@ -176,6 +179,10 @@ async def lifespan(app: FastAPI):
         health_check = HealthCheck(db)
         usage_tracker = UsageTracker(db)
         
+        # Set db and auth_service on app.state for business analysis router
+        app.state.db = db
+        app.state.auth_service = auth_service
+        
         # Initialize Growth OS services
         growth_engine = GrowthEngine(db, client_ai)
         campaign_launcher = CampaignLauncher(db, growth_engine)
@@ -233,6 +240,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="AstraMark AI Marketing API - Enhanced", lifespan=lifespan)
 app.state.limiter = limiter
+
+# Set global services on app.state for business analysis router
+# These will be populated during lifespan startup
+app.state.db = None
+app.state.auth_service = None
+
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 add_exception_handlers(app)
 
@@ -2380,7 +2393,9 @@ async def get_funnel_analytics(funnel_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 # ==================== APP SETUP ====================
+# Register routers
 app.include_router(api_router)
+app.include_router(business_analysis_router)
 
 app.add_middleware(
     CORSMiddleware,
